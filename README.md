@@ -91,15 +91,15 @@ sudo installer -pkg netcheck-2.4.0.pkg -target /
 
 ### Option 6: Linux installer (with shell completions + man page)
 ```bash
-git clone https://github.com/farman20ali/network_access_check.git
-cd network_access_check
+git clone https://github.com/farman20ali/netcheck.git
+cd netcheck
 sudo bash packaging/linux/install.sh
 ```
 
 ### Option 7: Developer / local run (no install)
 ```bash
-git clone https://github.com/farman20ali/network_access_check.git
-cd network_access_check
+git clone https://github.com/farman20ali/netcheck.git
+cd netcheck
 pip install -e ".[dev]"
 python3 -m netcheck --help
 ```
@@ -263,7 +263,7 @@ python3 -m netcheck.mcp.server
     "netcheck": {
       "command": "python3",
       "args": ["-m", "netcheck.mcp.server"],
-      "env": { "PYTHONPATH": "/path/to/network_access_check" }
+      "env": { "PYTHONPATH": "/path/to/netcheck" }
     }
   }
 }
@@ -553,7 +553,7 @@ PYTHONPATH=. python3 -m pytest tests/ --cov=netcheck --cov-report=term-missing
 ## 📁 Repository Structure
 
 ```
-network_access_check/
+netcheck/
 ├── netcheck/                  ← Python package
 │   ├── __init__.py            ← version string
 │   ├── __main__.py            ← python3 -m netcheck entry point

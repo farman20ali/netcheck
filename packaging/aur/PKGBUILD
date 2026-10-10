@@ -4,7 +4,7 @@ pkgver=2.4.0
 pkgrel=1
 pkgdesc="Lightweight network connectivity checker — TCP, DNS, HTTP, SSL, ping, traceroute, WHOIS"
 arch=('any')
-url="https://github.com/farman20ali/network_access_check"
+url="https://github.com/farman20ali/netcheck"
 license=('GPL3')
 depends=('python>=3.10' 'python-pip')
 makedepends=('python-build' 'python-installer' 'python-wheel')

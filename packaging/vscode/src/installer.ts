@@ -132,7 +132,7 @@ export async function ensureNetcheckInstalled(
     );
     if (action === "Show Manual Steps") {
       vscode.env.openExternal(
-        vscode.Uri.parse("https://github.com/farman20ali/network_access_check#installation")
+        vscode.Uri.parse("https://github.com/farman20ali/netcheck#installation")
       );
     }
     return false;

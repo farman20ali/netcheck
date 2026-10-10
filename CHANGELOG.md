@@ -257,10 +257,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-OS support (Ubuntu, Debian, CentOS, Fedora, Arch, openSUSE)
 - Three installation methods (manual, DEB, Snap)
 
-[2.3.0]: https://github.com/farman20ali/network_access_check/compare/v2.2.0...v2.3.0
-[2.2.0]: https://github.com/farman20ali/network_access_check/compare/v2.1.0...v2.2.0
-[2.1.0]: https://github.com/farman20ali/network_access_check/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/farman20ali/network_access_check/compare/v1.2.0...v2.0.0
-[1.2.0]: https://github.com/farman20ali/network_access_check/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/farman20ali/network_access_check/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/farman20ali/network_access_check/releases/tag/v1.0.0
+[2.3.0]: https://github.com/farman20ali/netcheck/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/farman20ali/netcheck/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/farman20ali/netcheck/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/farman20ali/netcheck/compare/v1.2.0...v2.0.0
+[1.2.0]: https://github.com/farman20ali/netcheck/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/farman20ali/netcheck/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/farman20ali/netcheck/releases/tag/v1.0.0

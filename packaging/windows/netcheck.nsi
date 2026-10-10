@@ -1,7 +1,7 @@
 !define PRODUCT_NAME "netcheck"
 !define PRODUCT_VERSION "{version}"
 !define PRODUCT_PUBLISHER "Network Tools Team"
-!define PRODUCT_WEB_SITE "https://github.com/farman20ali/network_access_check"
+!define PRODUCT_WEB_SITE "https://github.com/farman20ali/netcheck"
 !define ICON_FILE "{repo_root}\assets\icons\icon.ico"
 
 SetCompressor lzma

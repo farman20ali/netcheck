@@ -24,7 +24,7 @@ A **premium, production-grade network intelligence engine and CLI** written in p
 ## 📁 Project Structure
 
 ```
-network_access_check/
+netcheck/
 ├── netcheck/                   # Main Python package directory
 │   ├── __init__.py             # Exposes package version
 │   ├── __main__.py             # Entrypoint wrapper for python -m netcheck
@@ -72,8 +72,8 @@ network_access_check/
 ### 1. Developer Environment & Tests
 ```bash
 # Clone the repository
-git clone https://github.com/farman20ali/network_access_check.git
-cd network_access_check
+git clone https://github.com/farman20ali/netcheck.git
+cd netcheck
 
 # Install in editable mode with development dependencies
 pip install -e ".[dev]"

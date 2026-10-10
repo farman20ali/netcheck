@@ -16,7 +16,7 @@ sudo snap connect netcheck:network-observe  # required for ping and --my-ip
 
 ### Option 3 — .deb (Debian / Ubuntu / Mint)
 ```bash
-wget https://github.com/farman20ali/network_access_check/releases/download/v2.3.0/netcheck_2.3.0_amd64.deb
+wget https://github.com/farman20ali/netcheck/releases/download/v2.3.0/netcheck_2.3.0_amd64.deb
 sudo dpkg -i netcheck_2.3.0_amd64.deb
 ```
 
@@ -34,7 +34,7 @@ yay -S netcheck
 
 ### Option 6 — Binary Tarball (Any Linux, no pip needed)
 ```bash
-wget https://github.com/farman20ali/network_access_check/releases/download/v2.3.0/netcheck-2.3.0-linux-x86_64.tar.gz
+wget https://github.com/farman20ali/netcheck/releases/download/v2.3.0/netcheck-2.3.0-linux-x86_64.tar.gz
 tar xzf netcheck-2.3.0-linux-x86_64.tar.gz
 sudo mv netcheck /usr/local/bin/
 netcheck --version

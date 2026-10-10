@@ -372,7 +372,8 @@ jobs:
         run: find choco-download -type f
 
 
-      - name: Push to Chocolatey
+
+      - name: Push to Chocolatey
         if: env.CHOCO_API_KEY != ''
         shell: pwsh
         env:
@@ -447,7 +448,7 @@ jobs:
         shell: pwsh
         run: |
           $TAG_NAME = "${{ github.ref_name }}"
-          $VERSION = $TAG_NAME.Substring(1)
+          $VERSION = $TAG_NAME.Substring(1)netcheck
           $URL = "https://github.com/farman20ali/network_access_check/releases/download/$TAG_NAME/netcheck-$VERSION-setup.exe"
           wingetcreate update farman20ali.netcheck --version $VERSION --urls $URL --submit --token $env:WINGET_GITHUB_TOKEN
 

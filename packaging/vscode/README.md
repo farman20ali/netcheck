@@ -1,6 +1,6 @@
 # NetCheck — VSCode Extension
 
-Network diagnostics directly inside Visual Studio Code: TCP, DNS, HTTP, SSL, Ping, Traceroute, Port Scan, and WHOIS — powered by the [NetCheck MCP server](https://github.com/farman20ali/network_access_check).
+Network diagnostics directly inside Visual Studio Code: TCP, DNS, HTTP, SSL, Ping, Traceroute, Port Scan, and WHOIS — powered by the [NetCheck MCP server](https://github.com/farman20ali/netcheck).
 
 ---
 
@@ -91,8 +91,8 @@ code --install-extension netcheck-2.5.0.vsix
 
 ```bash
 # Clone the repo
-git clone https://github.com/farman20ali/network_access_check.git
-cd network_access_check/packaging/vscode
+git clone https://github.com/farman20ali/netcheck.git
+cd netcheck/packaging/vscode
 
 # Install dependencies
 npm install

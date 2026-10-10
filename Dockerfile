@@ -44,7 +44,7 @@ RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
 # Metadata
 LABEL org.opencontainers.image.title="netcheck" \
       org.opencontainers.image.description="Comprehensive network connectivity checker" \
-      org.opencontainers.image.source="https://github.com/farman20ali/network_access_check" \
+      org.opencontainers.image.source="https://github.com/farman20ali/netcheck" \
       org.opencontainers.image.licenses="MIT"
 
 USER netcheck

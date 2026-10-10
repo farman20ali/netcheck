@@ -7,19 +7,34 @@
   "icon": "images/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/farman20ali/network_access_check"
+    "url": "https://github.com/farman20ali/netcheck"
   },
   "bugs": {
-    "url": "https://github.com/farman20ali/network_access_check/issues"
+    "url": "https://github.com/farman20ali/netcheck/issues"
   },
-  "homepage": "https://github.com/farman20ali/network_access_check#readme",
-  "keywords": ["network", "tcp", "dns", "http", "ssl", "ping", "traceroute", "whois", "mcp"],
-  "categories": ["Other", "Debuggers"],
+  "homepage": "https://github.com/farman20ali/netcheck#readme",
+  "keywords": [
+    "network",
+    "tcp",
+    "dns",
+    "http",
+    "ssl",
+    "ping",
+    "traceroute",
+    "whois",
+    "mcp"
+  ],
+  "categories": [
+    "Other",
+    "Debuggers"
+  ],
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
   },
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [

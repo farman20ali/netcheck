@@ -3,12 +3,12 @@ PackageVersion: 2.4.0
 PackageLocale: en-US
 Publisher: Farman Ali
 PublisherUrl: https://github.com/farman20ali
-PublisherSupportUrl: https://github.com/farman20ali/network_access_check/issues
+PublisherSupportUrl: https://github.com/farman20ali/netcheck/issues
 Author: Farman Ali
 PackageName: NetCheck
-PackageUrl: https://github.com/farman20ali/network_access_check
+PackageUrl: https://github.com/farman20ali/netcheck
 License: GPL-3.0
-LicenseUrl: https://github.com/farman20ali/network_access_check/blob/main/LICENSE
+LicenseUrl: https://github.com/farman20ali/netcheck/blob/main/LICENSE
 ShortDescription: Lightweight network connectivity checker with cross-platform support
 Description: >-
   NetCheck is a powerful CLI tool for testing network connectivity to multiple 
@@ -24,7 +24,7 @@ Tags:
   - ssl
   - ping
   - devops
-ReleaseNotes: See https://github.com/farman20ali/network_access_check/releases/tag/v2.4.0
-ReleaseNotesUrl: https://github.com/farman20ali/network_access_check/releases/tag/v2.4.0
+ReleaseNotes: See https://github.com/farman20ali/netcheck/releases/tag/v2.4.0
+ReleaseNotesUrl: https://github.com/farman20ali/netcheck/releases/tag/v2.4.0
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

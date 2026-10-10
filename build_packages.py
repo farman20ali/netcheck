@@ -140,7 +140,7 @@ def _debian_skeleton(work: Path, version: str) -> None:
         Maintainer: {maint_name} <{maint_email}>
         Build-Depends: debhelper-compat (= 12)
         Standards-Version: 4.6.2
-        Homepage: https://github.com/farman20ali/network_access_check
+        Homepage: https://github.com/farman20ali/netcheck
         Rules-Requires-Root: no
 
         Package: netcheck
@@ -175,8 +175,8 @@ def _debian_skeleton(work: Path, version: str) -> None:
     (debian / "copyright").write_text(textwrap.dedent("""\
         Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
         Upstream-Name: netcheck
-        Upstream-Contact: https://github.com/farman20ali/network_access_check
-        Source: https://github.com/farman20ali/network_access_check
+        Upstream-Contact: https://github.com/farman20ali/netcheck
+        Source: https://github.com/farman20ali/netcheck
 
         Files: *
         Copyright: 2024-2026 Network Tools <netcheck@example.com>
@@ -248,7 +248,7 @@ def _rpm_spec(version: str) -> str:
         Release:        1%{{?dist}}
         Summary:        Network connectivity checker (DNS, ping, HTTP, TCP, SSL)
         License:        GPL-3.0+
-        URL:            https://github.com/farman20ali/network_access_check
+        URL:            https://github.com/farman20ali/netcheck
         BuildArch:      noarch
         Requires:       python3
 
@@ -473,7 +473,7 @@ def _build_win_installer_legacy(version: str) -> None:
 !define PRODUCT_NAME "netcheck"
 !define PRODUCT_VERSION "{version}"
 !define PRODUCT_PUBLISHER "Network Tools Team"
-!define PRODUCT_WEB_SITE "https://github.com/farman20ali/network_access_check"
+!define PRODUCT_WEB_SITE "https://github.com/farman20ali/netcheck"
 
 SetCompressor lzma
 
@@ -579,7 +579,7 @@ def build_choco_package(version: str, checksum_val: str | None = None, checksum_
 
     # 3. Calculate from GitHub release
     elif checksum_from_release:
-        url = f"https://github.com/farman20ali/network_access_check/releases/download/v{version}/netcheck-{version}-setup.exe"
+        url = f"https://github.com/farman20ali/netcheck/releases/download/v{version}/netcheck-{version}-setup.exe"
         print(f"Downloading and calculating checksum from GitHub release URL:\n  {url}")
         try:
             import urllib.request
@@ -683,8 +683,8 @@ def _build_choco_package_legacy(version: str) -> None:
     <title>NetCheck</title>
     <authors>Network Tools Team</authors>
     <owners>Network Tools Team</owners>
-    <projectUrl>https://github.com/farman20ali/network_access_check</projectUrl>
-    <licenseUrl>https://github.com/farman20ali/network_access_check/blob/main/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/farman20ali/netcheck</projectUrl>
+    <licenseUrl>https://github.com/farman20ali/netcheck/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Network connectivity checker with DNS, ping, HTTP, and SSL validation</description>
     <summary>A premium, cross-platform network diagnostic engine</summary>
