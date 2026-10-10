@@ -47,10 +47,17 @@ def get_public_ip(timeout: float = 1.5) -> str:
 
     with ThreadPoolExecutor(max_workers=len(services)) as executor:
         futures = {executor.submit(fetch_ip, url): url for url in services}
-        for fut in as_completed(futures):
-            res = fut.result()
-            if res:
-                return res
+        try:
+            for fut in as_completed(futures):
+                res = fut.result()
+                if res:
+                    for f in futures:
+                        f.cancel()
+                    return res
+        except KeyboardInterrupt:
+            for f in futures:
+                f.cancel()
+            raise
 
     return "Unknown"
 

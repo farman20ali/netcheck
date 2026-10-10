@@ -12,7 +12,7 @@ import { execFile } from "child_process";
 import * as vscode from "vscode";
 
 /** Minimum netcheckx version the extension requires. */
-const REQUIRED_VERSION = "2.4.0";
+const REQUIRED_VERSION = "2.5.0";
 
 /** Compare two semver strings. Returns true if `a` >= `b`. */
 function semverGte(a: string, b: string): boolean {

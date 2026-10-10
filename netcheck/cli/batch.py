@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import List, Tuple
 
 from netcheck.cli.executor import execute_concurrent_checks
-from netcheck.cli.exitcodes import EXIT_FAIL, EXIT_OK
+from netcheck.cli.exitcodes import EXIT_BAD_ARGS, EXIT_FAIL, EXIT_INTERRUPT, EXIT_OK
 from netcheck.utils.formatters import format_csv, format_json, format_text, format_xml
 from netcheck.utils.normalize import parse_line_to_raw_host_port
 from netcheck.utils.range_expanders import expand_ip_range, expand_port_range
@@ -134,9 +134,14 @@ def run_batch_targets(
 
     if not expanded:
         print("Error: No targets found to test", file=sys.stderr)
-        sys.exit(EXIT_FAIL)
+        sys.exit(EXIT_BAD_ARGS)
 
-    results = execute_concurrent_checks(expanded, timeout, max_jobs, retries, retry_delay, verbose=verbose)
+    try:
+        results = execute_concurrent_checks(expanded, timeout, max_jobs, retries, retry_delay, verbose=verbose)
+    except KeyboardInterrupt:
+        sys.stderr.write("\nInterrupted.\n")
+        sys.stderr.flush()
+        sys.exit(EXIT_INTERRUPT)
 
     date_str = datetime.now().strftime("%Y-%m-%d")
     ext_map = {"json": "json", "csv": "csv", "xml": "xml"}

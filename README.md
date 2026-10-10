@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey.svg)](#)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](#)
-[![Tests](https://img.shields.io/badge/tests-307%20passed-brightgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/tests-310%20passed-brightgreen.svg)](#)
 
 A premium, cross-platform, production-grade **Network Intelligence Engine & CLI** written in pure Python 3. Zero external dependencies. High-concurrency diagnostics, structured output (JSON/CSV/XML), watch/loop mode, shell completions, man page, and an integrated **Model Context Protocol (MCP) Server** for AI assistants.
 
@@ -86,7 +86,7 @@ choco install netcheck
 
 ### Option 5: macOS `.pkg`
 ```bash
-sudo installer -pkg netcheck-2.4.0.pkg -target /
+sudo installer -pkg netcheck-2.5.0.pkg -target /
 ```
 
 ### Option 6: Linux installer (with shell completions + man page)
@@ -576,6 +576,22 @@ netcheck/
 ├── python-requirements.txt    ← Local dev setup shortcut
 └── Makefile                   ← make install / test / clean
 ```
+
+---
+
+## 🚦 Exit Codes
+
+NetCheck adheres to deterministic, script-friendly POSIX exit code conventions:
+
+| Exit Code | Constant | Meaning |
+|:---:|---|---|
+| `0` | `EXIT_OK` | All network checks passed successfully |
+| `1` | `EXIT_FAIL` | One or more checks failed or targets were unreachable |
+| `2` | `EXIT_BAD_ARGS` | Invalid arguments, unsupported flags, or empty target list |
+| `3` | `EXIT_ERROR` | Unexpected runtime error |
+| `130` | `EXIT_INTERRUPT` | Interrupted by user via Ctrl+C / SIGINT (POSIX standard `128 + 2`) |
+
+> **Graceful Cancellation:** Pressing `Ctrl+C` immediately cancels all running threads and active socket connections, cleans up terminal cursor lines, outputs a message to `stderr`, and exits cleanly with code `130` without traceback dumps.
 
 ---
 

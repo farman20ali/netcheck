@@ -58,3 +58,43 @@ def test_json_whois_format(whois_result):
     out = json.loads(format_json([whois_result]))
     assert out["check_type"] == "whois"
     assert out["registrar"] == "MarkMonitor Inc."
+
+
+def test_json_udp_format():
+    udp_result = {
+        "type": "udp",
+        "target": "8.8.8.8:53",
+        "status": "OPEN",
+        "latency_ms": 12.3,
+        "success": True,
+        "error": None,
+        "metadata": {"port": 53, "service": "domain"},
+    }
+    out = json.loads(format_json([udp_result]))
+    assert out["type"] == "udp"
+    assert out["target"] == "8.8.8.8:53"
+    assert out["status"] == "OPEN"
+    assert out["service"] == "domain"
+
+
+def test_json_mtr_format():
+    mtr_result = {
+        "type": "mtr",
+        "target": "example.com",
+        "status": "SUCCESS",
+        "latency_ms": 25.4,
+        "success": True,
+        "error": None,
+        "metadata": {
+            "host": "example.com",
+            "hops": [
+                {"hop": 1, "ip": "192.168.1.1", "name": "router", "loss_pct": 0.0,
+                 "sent": 3, "recv": 3, "min_ms": 1.0, "avg_ms": 1.2, "max_ms": 1.5}
+            ],
+        },
+    }
+    out = json.loads(format_json([mtr_result]))
+    assert out["type"] == "mtr"
+    assert out["target"] == "example.com"
+    assert len(out["hops"]) == 1
+    assert out["hops"][0]["ip"] == "192.168.1.1"

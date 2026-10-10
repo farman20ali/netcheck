@@ -18,18 +18,20 @@
 
     <iconUrl>https://cdn.jsdelivr.net/gh/farman20ali/netcheck@v{version}/assets/icons/icon.png</iconUrl>
 
-    <summary>Cross-platform network diagnostics engine — DNS, TCP, HTTP, SSL, ping, traceroute, port scan, WHOIS, listening ports, MCP</summary>
+    <summary>Cross-platform network diagnostics engine — DNS, TCP, UDP, HTTP, SSL, ping, traceroute, MTR, port scan, WHOIS, listening ports, MCP</summary>
     <description>A cross-platform network intelligence engine and CLI written in pure Python 3.
 
 Supports:
 - DNS lookup (A/AAAA, cached, strict timeouts)
 - TCP port connectivity (concurrent scanning)
+- UDP probe checks with DNS/SNMP/NTP payload support
 - HTTP/HTTPS audits (latency, content size, redirects, custom headers/methods/auth)
 - SSL/TLS certificate validation (subject, issuer, expiry warnings, TLS version, cipher suite, fingerprint)
 - ICMP ping (packet loss and RTT stats)
 - Network interface enumeration with public IP
 - Local listening ports with process/PID detection and Docker container mapping
 - Traceroute path analysis (native raw ICMP or standard system fallback)
+- MTR combined hop-by-hop latency and packet loss analysis
 - Port scanner (fast concurrent scan of common or custom port ranges)
 - WHOIS / RDAP lookup (modern HTTP JSON query with port 43 fallback)
 - Structured output: text, JSON, CSV, XML (CI/CD ready)

@@ -11,7 +11,7 @@ from typing import List, Tuple
 
 from netcheck.cli.args import make_base_parser
 from netcheck.cli.executor import run_check_with_retry
-from netcheck.cli.exitcodes import EXIT_BAD_ARGS, EXIT_ERROR, EXIT_FAIL, EXIT_OK
+from netcheck.cli.exitcodes import EXIT_BAD_ARGS, EXIT_ERROR, EXIT_FAIL, EXIT_INTERRUPT, EXIT_OK
 from netcheck.modules.dns import dns_lookup
 from netcheck.modules.http import check_http_status
 from netcheck.modules.interfaces import get_network_interfaces
@@ -595,6 +595,10 @@ def handle_subcommands(
         try:
             success = execute_fn()
             sys.exit(EXIT_OK if success else EXIT_FAIL)
+        except KeyboardInterrupt:
+            sys.stderr.write("\nInterrupted.\n")
+            sys.stderr.flush()
+            sys.exit(EXIT_INTERRUPT)
         except Exception as exc:
             print(f"Unexpected error: {exc}", file=sys.stderr)
             sys.exit(EXIT_ERROR)

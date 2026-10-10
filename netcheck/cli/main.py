@@ -11,11 +11,16 @@ Responsibilities (only routing — no business logic):
 All heavy logic lives in: subcommands.py, batch.py, executor.py
 """
 import os
+import signal
 import sys
 from typing import Optional
 
-from netcheck.cli.exitcodes import EXIT_BAD_ARGS, EXIT_FAIL, EXIT_OK
+from netcheck.cli.exitcodes import EXIT_BAD_ARGS, EXIT_ERROR, EXIT_FAIL, EXIT_INTERRUPT, EXIT_OK
 from netcheck.cli.subcommands import SUBCOMMANDS, handle_subcommands
+
+# Suppress BrokenPipeError when output is piped to head/grep/etc.
+if hasattr(signal, "SIGPIPE"):
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 # ---------------------------------------------------------------------------
 # Help text
@@ -180,10 +185,17 @@ def run_quick_test(
     if not targets:
         print("Error: No valid host or port specified", file=sys.stderr)
         if exit_on_complete:
-            sys.exit(EXIT_FAIL)
+            sys.exit(EXIT_BAD_ARGS)
         return False
 
-    results = execute_concurrent_checks(targets, timeout, max_jobs, retries, retry_delay, verbose=verbose)
+    try:
+        results = execute_concurrent_checks(targets, timeout, max_jobs, retries, retry_delay, verbose=verbose)
+    except KeyboardInterrupt:
+        sys.stderr.write("\nInterrupted.\n")
+        sys.stderr.flush()
+        if exit_on_complete:
+            sys.exit(EXIT_INTERRUPT)
+        raise
 
     if show_filter == "success":
         display = [r for r in results if r["success"]]
@@ -216,7 +228,7 @@ def run_quick_test(
 # Main entry point
 # ---------------------------------------------------------------------------
 
-def main() -> None:
+def _main_impl() -> None:
     # 1. Normalize legacy single-dash multi-char options
     for idx in range(1, len(sys.argv)):
         arg = sys.argv[idx]
@@ -387,16 +399,20 @@ def main() -> None:
             sys.exit(EXIT_OK if res["success"] else EXIT_FAIL)
         else:
             results = []
-            with ThreadPoolExecutor(max_workers=args.jobs) as executor:
-                futures = {executor.submit(ping_host, h, 4, timeout): h for h in hosts}
-                for future in as_completed(futures):
-                    try:
-                        results.append(future.result())
-                    except Exception as exc:
-                        h = futures[future]
-                        results.append({"type": "ping", "target": h, "status": "FAILED",
-                                        "latency_ms": 0.0, "success": False,
-                                        "error": str(exc), "metadata": {}})
+            try:
+                with ThreadPoolExecutor(max_workers=args.jobs) as executor:
+                    futures = {executor.submit(ping_host, h, 4, timeout): h for h in hosts}
+                    for future in as_completed(futures):
+                        try:
+                            results.append(future.result())
+                        except Exception as exc:
+                            h = futures[future]
+                            results.append({"type": "ping", "target": h, "status": "FAILED",
+                                            "latency_ms": 0.0, "success": False,
+                                            "error": str(exc), "metadata": {}})
+            except KeyboardInterrupt:
+                print("\nInterrupted.", file=sys.stderr)
+                sys.exit(EXIT_INTERRUPT)
             results.sort(key=lambda r: r.get("target", ""))
             print(_fmt(results))
             sys.exit(EXIT_OK if all(r["success"] for r in results) else EXIT_FAIL)
@@ -469,3 +485,22 @@ def main() -> None:
 
     print_help()
     sys.exit(EXIT_BAD_ARGS)
+
+
+def main() -> None:
+    """Top-level entry point with Ctrl+C and pipeline signal handling."""
+    try:
+        _main_impl()
+    except KeyboardInterrupt:
+        sys.stderr.write("\nInterrupted.\n")
+        sys.stderr.flush()
+        sys.exit(EXIT_INTERRUPT)
+    except BrokenPipeError:
+        # Pipe was closed (e.g. | head). Exit silently.
+        sys.exit(EXIT_OK)
+    except SystemExit:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        sys.stderr.write(f"netcheck: unexpected error: {exc}\n")
+        sys.stderr.flush()
+        sys.exit(EXIT_ERROR)
