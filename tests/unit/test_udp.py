@@ -32,19 +32,17 @@ class TestResultHelper:
 
 def _mocked_udp(return_value=None, side_effect=None, send_side=None):
     """Helper: returns (result, sock_inst) after calling check_udp with mocks."""
-    with (
-        patch("netcheck.modules.udp.socket.gethostbyname", return_value="1.2.3.4"),
-        patch("netcheck.modules.udp.socket.socket") as MockSock,
-    ):
-        si = MagicMock()
-        if send_side:
-            si.sendto.side_effect = send_side
-        elif side_effect:
-            si.recvfrom.side_effect = side_effect
-        else:
-            si.recvfrom.return_value = return_value
-        MockSock.return_value = si
-        result = check_udp("host", 53, timeout=0.1)
+    with patch("netcheck.modules.udp.socket.gethostbyname", return_value="1.2.3.4"):
+        with patch("netcheck.modules.udp.socket.socket") as MockSock:
+            si = MagicMock()
+            if send_side:
+                si.sendto.side_effect = send_side
+            elif side_effect:
+                si.recvfrom.side_effect = side_effect
+            else:
+                si.recvfrom.return_value = return_value
+            MockSock.return_value = si
+            result = check_udp("host", 53, timeout=0.1)
     return result, si
 
 
@@ -79,14 +77,12 @@ class TestCheckUdp:
         assert "DNS" in result["error"]
 
     def test_target_format(self):
-        with (
-            patch("netcheck.modules.udp.socket.gethostbyname", return_value="9.9.9.9"),
-            patch("netcheck.modules.udp.socket.socket") as MockSock,
-        ):
-            si = MagicMock()
-            si.recvfrom.side_effect = socket.timeout
-            MockSock.return_value = si
-            result = check_udp("myhost", 1234, timeout=0.1)
+        with patch("netcheck.modules.udp.socket.gethostbyname", return_value="9.9.9.9"):
+            with patch("netcheck.modules.udp.socket.socket") as MockSock:
+                si = MagicMock()
+                si.recvfrom.side_effect = socket.timeout
+                MockSock.return_value = si
+                result = check_udp("myhost", 1234, timeout=0.1)
         assert result["target"] == "myhost:1234"
 
     def test_ip_in_metadata(self):
@@ -98,25 +94,21 @@ class TestCheckUdp:
         assert result["metadata"]["service"] == "dns"  # port 53
 
     def test_unknown_service_empty(self):
-        with (
-            patch("netcheck.modules.udp.socket.gethostbyname", return_value="0.0.0.0"),
-            patch("netcheck.modules.udp.socket.socket") as MockSock,
-        ):
-            si = MagicMock()
-            si.recvfrom.side_effect = socket.timeout
-            MockSock.return_value = si
-            result = check_udp("host", 54321, timeout=0.1)
+        with patch("netcheck.modules.udp.socket.gethostbyname", return_value="0.0.0.0"):
+            with patch("netcheck.modules.udp.socket.socket") as MockSock:
+                si = MagicMock()
+                si.recvfrom.side_effect = socket.timeout
+                MockSock.return_value = si
+                result = check_udp("host", 54321, timeout=0.1)
         assert result["metadata"]["service"] == ""
 
     def test_custom_payload_sent(self):
-        with (
-            patch("netcheck.modules.udp.socket.gethostbyname", return_value="1.1.1.1"),
-            patch("netcheck.modules.udp.socket.socket") as MockSock,
-        ):
-            si = MagicMock()
-            si.recvfrom.side_effect = socket.timeout
-            MockSock.return_value = si
-            check_udp("host", 514, timeout=0.1, payload=b"hello")
+        with patch("netcheck.modules.udp.socket.gethostbyname", return_value="1.1.1.1"):
+            with patch("netcheck.modules.udp.socket.socket") as MockSock:
+                si = MagicMock()
+                si.recvfrom.side_effect = socket.timeout
+                MockSock.return_value = si
+                check_udp("host", 514, timeout=0.1, payload=b"hello")
         si.sendto.assert_called_once()
         assert si.sendto.call_args[0][0] == b"hello"
 

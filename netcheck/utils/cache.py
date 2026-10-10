@@ -23,15 +23,16 @@ class Cache:
 
     def set(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
         duration = ttl if ttl is not None else self._default_ttl
-        expiry = time.time() + duration
         with self._lock:
-            # Clean expired items first
             now = time.time()
-            expired_keys = [k for k, (_, exp) in self._cache.items() if now > exp]
+            expiry = now + duration
+
+            # Clean expired items, but never evict the key we're about to write
+            expired_keys = [k for k, (_, exp) in self._cache.items() if now > exp and k != key]
             for k in expired_keys:
                 del self._cache[k]
 
-            # Evict if full
+            # Evict oldest if still full (only when key is new)
             if len(self._cache) >= self._max_size and key not in self._cache:
                 oldest_key = next(iter(self._cache))
                 del self._cache[oldest_key]

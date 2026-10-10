@@ -93,12 +93,10 @@ class TestMtr:
 
     def test_fallback_called_on_permission_error(self):
         """When raw socket raises PermissionError, _system_traceroute is called."""
-        with (
-            patch("netcheck.modules.mtr.socket.gethostbyname", return_value="8.8.8.8"),
-            patch("netcheck.modules.mtr._raw_mtr", side_effect=PermissionError),
-            patch("netcheck.modules.mtr._system_traceroute", return_value=None) as mock_sys,
-        ):
-            mtr("google.com", count=1, max_hops=2, timeout=0.1)
+        with patch("netcheck.modules.mtr.socket.gethostbyname", return_value="8.8.8.8"):
+            with patch("netcheck.modules.mtr._raw_mtr", side_effect=PermissionError):
+                with patch("netcheck.modules.mtr._system_traceroute", return_value=None) as mock_sys:
+                    mtr("google.com", count=1, max_hops=2, timeout=0.1)
         mock_sys.assert_called_once()
 
     def test_success_from_system_traceroute(self):
@@ -110,20 +108,16 @@ class TestMtr:
              "loss_pct": 0.0, "sent": 3, "recv": 3,
              "min_ms": 10.0, "avg_ms": 11.0, "max_ms": 12.0},
         ]
-        with (
-            patch("netcheck.modules.mtr.socket.gethostbyname", return_value="8.8.8.8"),
-            patch("netcheck.modules.mtr._raw_mtr", side_effect=PermissionError),
-            patch("netcheck.modules.mtr._system_traceroute", return_value=fake_hops),
-        ):
-            result = mtr("google.com", count=3, max_hops=5, timeout=1.0)
+        with patch("netcheck.modules.mtr.socket.gethostbyname", return_value="8.8.8.8"):
+            with patch("netcheck.modules.mtr._raw_mtr", side_effect=PermissionError):
+                with patch("netcheck.modules.mtr._system_traceroute", return_value=fake_hops):
+                    result = mtr("google.com", count=3, max_hops=5, timeout=1.0)
         assert result["success"] is True
         assert result["metadata"]["hops"] == fake_hops
 
     def test_failure_when_both_methods_fail(self):
-        with (
-            patch("netcheck.modules.mtr.socket.gethostbyname", return_value="8.8.8.8"),
-            patch("netcheck.modules.mtr._raw_mtr", side_effect=PermissionError),
-            patch("netcheck.modules.mtr._system_traceroute", return_value=None),
-        ):
-            result = mtr("google.com")
+        with patch("netcheck.modules.mtr.socket.gethostbyname", return_value="8.8.8.8"):
+            with patch("netcheck.modules.mtr._raw_mtr", side_effect=PermissionError):
+                with patch("netcheck.modules.mtr._system_traceroute", return_value=None):
+                    result = mtr("google.com")
         assert result["success"] is False
