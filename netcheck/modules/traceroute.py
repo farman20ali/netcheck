@@ -211,7 +211,7 @@ def run_subprocess_traceroute(host: str, max_hops: int = 30) -> List[Dict[str, A
     if is_windows:
         cmd = ["tracert", "-d", "-h", str(max_hops), host]
         try:
-            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace", timeout=60.0)
             return parse_tracert_output_windows(proc.stdout)
         except Exception:
             return []
@@ -219,7 +219,7 @@ def run_subprocess_traceroute(host: str, max_hops: int = 30) -> List[Dict[str, A
     # Try traceroute first
     try:
         cmd = ["traceroute", "-n", "-m", str(max_hops), host]
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace", timeout=60.0)
         if proc.returncode == 0:
             return parse_traceroute_output_unix(proc.stdout)
     except (FileNotFoundError, Exception):
@@ -228,7 +228,7 @@ def run_subprocess_traceroute(host: str, max_hops: int = 30) -> List[Dict[str, A
     # Try tracepath as fallback
     try:
         cmd = ["tracepath", "-n", "-m", str(max_hops), host]
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60.0)
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace", timeout=60.0)
         return parse_traceroute_output_unix(proc.stdout)
     except Exception:
         return []

@@ -237,6 +237,7 @@ def _system_traceroute(
             cmd,
             capture_output=True,
             text=True,
+            errors="replace",
             timeout=max_hops * (timeout + 1),
         )
         output = proc.stdout or proc.stderr

@@ -81,7 +81,7 @@ def get_default_gateway() -> Tuple[Optional[str], Optional[str]]:
     # Cross-platform fallback using route commands
     try:
         if plat == "windows":
-            proc = subprocess.run(["route", "print", "0.0.0.0"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            proc = subprocess.run(["route", "print", "0.0.0.0"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
             if proc.returncode == 0:
                 for line in proc.stdout.splitlines():
                     if "0.0.0.0" in line:
@@ -89,7 +89,7 @@ def get_default_gateway() -> Tuple[Optional[str], Optional[str]]:
                         if len(parts) >= 4 and parts[0] == "0.0.0.0":
                             return parts[2], None
         else: # macOS / Unix fallback
-            proc = subprocess.run(["netstat", "-rn"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            proc = subprocess.run(["netstat", "-rn"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
             if proc.returncode == 0:
                 for line in proc.stdout.splitlines():
                     if line.strip().startswith("default") or line.strip().startswith("0.0.0.0"):
@@ -209,7 +209,7 @@ def check_listening_ports() -> Dict[str, Any]:
 def _parse_linux_ip_addr(all_interfaces: bool = False) -> Dict[str, Any]:
     interfaces = {}
     try:
-        proc = subprocess.run(["ip", "addr", "show"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.run(["ip", "addr", "show"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
         if proc.returncode == 0:
             current_iface = None
             for line in proc.stdout.splitlines():
@@ -254,7 +254,7 @@ def _parse_linux_ip_addr(all_interfaces: bool = False) -> Dict[str, Any]:
 def _parse_unix_ifconfig(all_interfaces: bool = False) -> Dict[str, Any]:
     interfaces = {}
     try:
-        proc = subprocess.run(["ifconfig"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.run(["ifconfig"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
         if proc.returncode == 0:
             current_iface = None
             for line in proc.stdout.splitlines():
@@ -291,7 +291,7 @@ def _parse_unix_ifconfig(all_interfaces: bool = False) -> Dict[str, Any]:
 def _parse_windows_ipconfig() -> Dict[str, Any]:
     interfaces = {}
     try:
-        proc = subprocess.run(["ipconfig"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.run(["ipconfig"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
         if proc.returncode == 0:
             current_iface = None
             for line in proc.stdout.splitlines():
@@ -324,7 +324,7 @@ def get_docker_port_mappings() -> Dict[int, str]:
     mappings = {}
     try:
         proc = subprocess.run(["docker", "ps", "--format", "{{.Ports}}\t{{.Names}}"],
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
         if proc.returncode == 0:
             for line in proc.stdout.splitlines():
                 if not line.strip():
@@ -343,7 +343,7 @@ def _get_listening_ports_windows(docker_mappings: Dict[int, str]) -> List[Dict[s
     pid_map = {}
     try:
         proc = subprocess.run(["tasklist", "/FO", "CSV", "/NH"],
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
         if proc.returncode == 0:
             import csv
             import io
@@ -356,7 +356,7 @@ def _get_listening_ports_windows(docker_mappings: Dict[int, str]) -> List[Dict[s
 
     try:
         proc = subprocess.run(["netstat", "-ano"],
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
         if proc.returncode == 0:
             for line in proc.stdout.splitlines():
                 if "LISTENING" not in line:
@@ -394,7 +394,7 @@ def _get_listening_ports_windows(docker_mappings: Dict[int, str]) -> List[Dict[s
 def _get_listening_ports_unix(docker_mappings: Dict[int, str]) -> List[Dict[str, Any]]:
     ports = []
     try:
-        proc = subprocess.run(["ss", "-tlnp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.run(["ss", "-tlnp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
         if proc.returncode == 0:
             for line in proc.stdout.splitlines():
                 if "LISTEN" not in line:
@@ -442,7 +442,7 @@ def _get_listening_ports_unix(docker_mappings: Dict[int, str]) -> List[Dict[str,
 
     try:
         proc = subprocess.run(["lsof", "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
         if proc.returncode == 0:
             for line in proc.stdout.splitlines():
                 if line.startswith("COMMAND") or not line.strip():
@@ -475,7 +475,7 @@ def _get_listening_ports_unix(docker_mappings: Dict[int, str]) -> List[Dict[str,
         pass
 
     try:
-        proc = subprocess.run(["netstat", "-tln"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.run(["netstat", "-tln"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace")
         if proc.returncode == 0:
             for line in proc.stdout.splitlines():
                 if "LISTEN" not in line:

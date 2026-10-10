@@ -2,9 +2,11 @@
 Unit/Integration tests for netcheck.cli.main
 """
 import sys
-import pytest
 from unittest.mock import patch
-from netcheck.cli.main import main
+import pytest
+
+import netcheck.cli.main
+from netcheck.cli import main
 
 
 @patch("sys.argv", ["netcheck", "--version"])
@@ -23,7 +25,8 @@ def test_main_help():
 
 def test_main_keyboard_interrupt():
     from netcheck.cli.exitcodes import EXIT_INTERRUPT
-    with patch("netcheck.cli.main._main_impl", side_effect=KeyboardInterrupt):
+    mod = sys.modules["netcheck.cli.main"]
+    with patch.object(mod, "_main_impl", side_effect=KeyboardInterrupt):
         with pytest.raises(SystemExit) as exc:
             main()
         assert exc.value.code == EXIT_INTERRUPT

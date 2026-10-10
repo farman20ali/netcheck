@@ -504,3 +504,4 @@ def main() -> None:
         sys.stderr.write(f"netcheck: unexpected error: {exc}\n")
         sys.stderr.flush()
         sys.exit(EXIT_ERROR)
+
