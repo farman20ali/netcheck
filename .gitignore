@@ -97,6 +97,24 @@ env/
 ENV/
 .venv/
 
+# ── Node.js / VSCode extension ────────────────────────────────────────────────
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Compiled TypeScript output
+packaging/vscode/out/
+
+# VS Code extension artefacts
+*.vsix
+.vscode-test/
+packaging/vscode/.vscode-test/
+
+# Coverage / test results (Node)
+coverage/
+.nyc_output/
+
 # ── Keep example input files ──────────────────────────────────────────────────
 !hosts.csv
 !test-ips.txt

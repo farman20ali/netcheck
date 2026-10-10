@@ -1,0 +1,17 @@
+pkgbase = netcheck
+	pkgdesc = Lightweight network connectivity checker — TCP, DNS, HTTP, SSL, ping, traceroute, WHOIS
+	pkgver = 2.3.0
+	pkgrel = 1
+	url = https://github.com/farman20ali/netcheck
+	arch = any
+	license = GPL3
+	makedepends = python-build
+	makedepends = python-installer
+	makedepends = python-wheel
+	depends = python>=3.10
+	depends = python-pip
+	provides = netcheck
+	source = https://files.pythonhosted.org/packages/source/n/netcheckx/netcheckx-2.3.0.tar.gz
+	sha256sums = 6d7f023d8c1c4e7a85854728562325c7e145e69e2c65a7e58c0c4e7a8585472a
+
+pkgname = netcheck

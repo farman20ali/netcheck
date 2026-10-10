@@ -1,0 +1,30 @@
+PackageIdentifier: farman20ali.netcheck
+PackageVersion: 2.5.0
+PackageLocale: en-US
+Publisher: Farman Ali
+PublisherUrl: https://github.com/farman20ali
+PublisherSupportUrl: https://github.com/farman20ali/netcheck/issues
+Author: Farman Ali
+PackageName: NetCheck
+PackageUrl: https://github.com/farman20ali/netcheck
+License: GPL-3.0
+LicenseUrl: https://github.com/farman20ali/netcheck/blob/main/LICENSE
+ShortDescription: Lightweight network connectivity checker with cross-platform support
+Description: >-
+  NetCheck is a powerful CLI tool for testing network connectivity to multiple 
+  hosts and ports. Supports TCP, DNS, HTTP, SSL, ping, traceroute, port scanning, 
+  WHOIS, and more. Outputs JSON, CSV, XML. Cross-platform: Windows, Linux, macOS.
+Moniker: netcheck
+Tags:
+  - network
+  - connectivity
+  - cli
+  - tcp
+  - dns
+  - ssl
+  - ping
+  - devops
+ReleaseNotes: See https://github.com/farman20ali/netcheck/releases/tag/v2.5.0
+ReleaseNotesUrl: https://github.com/farman20ali/netcheck/releases/tag/v2.5.0
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

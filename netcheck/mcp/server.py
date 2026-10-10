@@ -1,6 +1,8 @@
-import sys
 import json
+import sys
+
 from netcheck.mcp.tools import TOOLS_LIST, call_tool
+
 
 def start_mcp_server():
     """
@@ -10,13 +12,13 @@ def start_mcp_server():
     # Configure stdin and stdout to use UTF-8 and line-buffering
     sys.stdout.reconfigure(encoding='utf-8')
     sys.stdin.reconfigure(encoding='utf-8')
-    
+
     # Save original stdout for JSON-RPC messages
     original_stdout = sys.stdout
-    
+
     # Redirect all standard prints to sys.stderr to prevent corrupting the JSON-RPC stream
     sys.stdout = sys.stderr
-    
+
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -25,8 +27,9 @@ def start_mcp_server():
             request = json.loads(line)
             method = request.get("method")
             req_id = request.get("id")
-            
+
             if method == "initialize":
+                from netcheck import __version__
                 response = {
                     "jsonrpc": "2.0",
                     "id": req_id,
@@ -37,10 +40,11 @@ def start_mcp_server():
                         },
                         "serverInfo": {
                             "name": "netcheck",
-                            "version": "2.3.0"
+                            "version": __version__
                         }
                     }
                 }
+
             elif method == "notifications/initialized":
                 continue
             elif method == "tools/list":
@@ -55,9 +59,9 @@ def start_mcp_server():
                 params = request.get("params", {})
                 tool_name = params.get("name")
                 tool_args = params.get("arguments", {})
-                
+
                 tool_res = call_tool(tool_name, tool_args)
-                
+
                 response = {
                     "jsonrpc": "2.0",
                     "id": req_id,
@@ -78,10 +82,10 @@ def start_mcp_server():
                         "message": f"Method not found: {method}"
                     }
                 }
-                
+
             original_stdout.write(json.dumps(response) + "\n")
             original_stdout.flush()
-            
+
         except json.JSONDecodeError:
             response = {
                 "jsonrpc": "2.0",
@@ -105,6 +109,6 @@ def start_mcp_server():
             }
             original_stdout.write(json.dumps(response) + "\n")
             original_stdout.flush()
-            
+
     # Restore stdout upon exit
     sys.stdout = original_stdout

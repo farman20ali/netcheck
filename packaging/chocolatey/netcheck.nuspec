@@ -7,16 +7,16 @@
     <authors>Farman Ali</authors>
     <owners>alienhub</owners>
 
-    <projectUrl>https://github.com/farman20ali/network_access_check</projectUrl>
-    <projectSourceUrl>https://github.com/farman20ali/network_access_check/tree/main/netcheck</projectSourceUrl>
-    <packageSourceUrl>https://github.com/farman20ali/network_access_check/tree/main/packaging/chocolatey</packageSourceUrl>
-    <docsUrl>https://github.com/farman20ali/network_access_check/blob/main/README.md</docsUrl>
-    <bugTrackerUrl>https://github.com/farman20ali/network_access_check/issues</bugTrackerUrl>
+    <projectUrl>https://github.com/farman20ali/netcheck</projectUrl>
+    <projectSourceUrl>https://github.com/farman20ali/netcheck/tree/main/netcheck</projectSourceUrl>
+    <packageSourceUrl>https://github.com/farman20ali/netcheck/tree/main/packaging/chocolatey</packageSourceUrl>
+    <docsUrl>https://github.com/farman20ali/netcheck/blob/main/README.md</docsUrl>
+    <bugTrackerUrl>https://github.com/farman20ali/netcheck/issues</bugTrackerUrl>
 
-    <licenseUrl>https://github.com/farman20ali/network_access_check/blob/main/LICENSE</licenseUrl>
+    <licenseUrl>https://github.com/farman20ali/netcheck/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
 
-    <iconUrl>https://raw.githubusercontent.com/farman20ali/network_access_check/main/assets/icons/icon.png</iconUrl>
+    <iconUrl>https://cdn.jsdelivr.net/gh/farman20ali/netcheck@v{version}/assets/icons/icon.png</iconUrl>
 
     <summary>Cross-platform network diagnostics engine — DNS, TCP, HTTP, SSL, ping, traceroute, port scan, WHOIS, listening ports, MCP</summary>
     <description>A cross-platform network intelligence engine and CLI written in pure Python 3.
@@ -40,7 +40,7 @@ Run `netcheck --mcp` to expose network tools (dns_lookup, ping_host, check_tcp_p
 
 The Windows installer is downloaded from the official GitHub release during installation.</description>
 
-    <releaseNotes>https://github.com/farman20ali/network_access_check/releases/tag/v{version}</releaseNotes>
+    <releaseNotes>https://github.com/farman20ali/netcheck/releases/tag/v{version}</releaseNotes>
     <tags>netcheck network ping dns ssl http tcp mcp diagnostic cli tool cross-platform python devops</tags>
   </metadata>
   <files>

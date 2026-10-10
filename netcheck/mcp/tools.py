@@ -1,14 +1,14 @@
 import json
-from typing import Dict, Any, List
+from typing import Any, Dict
 
-from netcheck.modules.tcp import check_tcp_connect
+from netcheck.cli import run_check_with_retry
 from netcheck.modules.dns import dns_lookup
 from netcheck.modules.http import check_http_status
-from netcheck.modules.ssl import check_ssl_certificate
-from netcheck.modules.ping import ping_host
 from netcheck.modules.interfaces import get_network_interfaces, get_public_ip
+from netcheck.modules.ping import ping_host
+from netcheck.modules.ssl import check_ssl_certificate
+from netcheck.modules.tcp import check_tcp_connect
 from netcheck.utils.range_expanders import expand_ip_range, expand_port_range
-from netcheck.cli import run_check_with_retry
 
 TOOLS_LIST = [
     {
@@ -235,59 +235,59 @@ def call_tool(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             port_str = str(arguments.get("port"))
             timeout = float(arguments.get("timeout", 5.0))
             retries = int(arguments.get("retries", 1))
-            
+
             # Expand hosts/ports
             hosts = expand_ip_range(host)
             ports = expand_port_range(port_str)
-            
+
             results = []
             for h in hosts:
                 for p in ports:
                     res = run_check_with_retry(check_tcp_connect, args=(h, p, timeout), retries=retries)
                     results.append(res)
-                    
+
             return _mcp_success_response(results)
-            
+
         elif name == "check_http_status":
             url = arguments.get("url")
             timeout = float(arguments.get("timeout", 5.0))
             res = check_http_status(url, timeout)
             return _mcp_success_response(res)
-            
+
         elif name == "check_ssl_certificate":
             host = arguments.get("host")
             port = int(arguments.get("port", 443))
             timeout = float(arguments.get("timeout", 5.0))
             res = check_ssl_certificate(host, port, timeout)
             return _mcp_success_response(res)
-            
+
         elif name == "dns_lookup":
             host = arguments.get("host")
             timeout = float(arguments.get("timeout", 5.0))
             res = dns_lookup(host, timeout)
             return _mcp_success_response(res)
-            
+
         elif name == "ping_host":
             host = arguments.get("host")
             count = int(arguments.get("count", 4))
             timeout = float(arguments.get("timeout", 2.0))
             res = ping_host(host, count, timeout)
             return _mcp_success_response(res)
-            
+
         elif name == "get_network_interfaces":
             res = get_network_interfaces()
             return _mcp_success_response(res)
-            
+
         elif name == "get_listening_ports":
             from netcheck.modules.interfaces import check_listening_ports
             res = check_listening_ports()
             return _mcp_success_response(res)
-            
+
         elif name == "get_public_ip":
             timeout = float(arguments.get("timeout", 3.0))
             ip = get_public_ip(timeout)
             return _mcp_success_response({"public_ip": ip, "success": ip != "Unknown"})
-            
+
         elif name == "traceroute":
             from netcheck.modules.traceroute import traceroute as run_traceroute
             host = arguments.get("host")
@@ -295,7 +295,7 @@ def call_tool(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             timeout = float(arguments.get("timeout", 2.0))
             res = run_traceroute(host, max_hops=max_hops, timeout=timeout)
             return _mcp_success_response(res)
-            
+
         elif name == "scan_ports":
             from netcheck.modules.port_scanner import scan_ports
             host = arguments.get("host")
@@ -304,16 +304,16 @@ def call_tool(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             max_workers = int(arguments.get("max_workers", 20))
             res = scan_ports(host, ports=ports, timeout=timeout, max_workers=max_workers)
             return _mcp_success_response(res)
-            
+
         elif name == "whois_lookup":
             from netcheck.modules.whois import lookup_registration
             target = arguments.get("target")
             res = lookup_registration(target)
             return _mcp_success_response(res)
-            
+
         else:
             return _mcp_error_response(f"Unknown tool: {name}")
-            
+
     except Exception as e:
         return _mcp_error_response(f"Internal error executing tool {name}: {str(e)}")
 

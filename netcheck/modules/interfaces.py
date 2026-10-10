@@ -1,8 +1,9 @@
-import socket
 import platform
-import subprocess
 import re
-from typing import Dict, Any, List, Tuple, Optional
+import socket
+import subprocess
+from typing import Any, Dict, List, Optional, Tuple
+
 
 def get_active_local_ip() -> str:
     """
@@ -30,9 +31,9 @@ def get_public_ip(timeout: float = 1.5) -> str:
     """Retrieves public IP address from public APIs concurrently."""
     import urllib.request
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    
+
     services = ["https://api.ipify.org", "https://ifconfig.me", "https://icanhazip.com"]
-    
+
     def fetch_ip(url: str) -> Optional[str]:
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'NetCheck/2.0'})
@@ -50,7 +51,7 @@ def get_public_ip(timeout: float = 1.5) -> str:
             res = fut.result()
             if res:
                 return res
-                
+
     return "Unknown"
 
 def get_default_gateway() -> Tuple[Optional[str], Optional[str]]:
@@ -69,7 +70,7 @@ def get_default_gateway() -> Tuple[Optional[str], Optional[str]]:
                         return gw_ip, dev
         except Exception:
             pass
-            
+
     # Cross-platform fallback using route commands
     try:
         if plat == "windows":
@@ -92,7 +93,7 @@ def get_default_gateway() -> Tuple[Optional[str], Optional[str]]:
                             return gateway, dev
     except Exception:
         pass
-        
+
     return None, None
 
 def get_network_interfaces(all_interfaces: bool = False, include_public: bool = False, timeout: float = 1.5) -> Dict[str, Any]:
@@ -102,16 +103,16 @@ def get_network_interfaces(all_interfaces: bool = False, include_public: bool = 
     """
     primary_ip = get_active_local_ip()
     plat = platform.system().lower()
-    
+
     interfaces = {}
-    
+
     if plat == "windows":
         interfaces = _parse_windows_ipconfig()
     elif plat == "darwin":
         interfaces = _parse_unix_ifconfig(all_interfaces)
     else:
         interfaces = _parse_linux_ip_addr(all_interfaces)
-        
+
     # If no interfaces were parsed but we have a primary IP, insert a dummy entry
     if not interfaces and primary_ip != "127.0.0.1":
         interfaces["default"] = {
@@ -130,7 +131,7 @@ def get_network_interfaces(all_interfaces: bool = False, include_public: bool = 
                 iface["active"] = True
                 iface["status"] = "UP"  # Force status to UP if it holds the active IP
                 has_active = True
-                
+
         # If no interface matched the primary IP, set the first one with an IP as active
         if not has_active:
             for name, iface in interfaces.items():
@@ -141,13 +142,13 @@ def get_network_interfaces(all_interfaces: bool = False, include_public: bool = 
 
     # Get gateway details
     gateway_ip, gateway_dev = get_default_gateway()
-    
+
     # Get public IP
     if include_public and primary_ip != "127.0.0.1":
         public_ip = get_public_ip(timeout=timeout)
     else:
         public_ip = "Unknown"
-    
+
     # Filter active only if all_interfaces is False
     if not all_interfaces:
         interfaces = {name: iface for name, iface in interfaces.items() if iface.get("status") == "UP"}
@@ -211,7 +212,7 @@ def _parse_linux_ip_addr(all_interfaces: bool = False) -> Dict[str, Any]:
                     if not all_interfaces and (current_iface == "lo" or current_iface.startswith("veth")):
                         current_iface = None
                         continue
-                    
+
                     state = "DOWN"
                     if "state UP" in line:
                         state = "UP"
@@ -219,7 +220,7 @@ def _parse_linux_ip_addr(all_interfaces: bool = False) -> Dict[str, Any]:
                         state = "UNKNOWN"
                     elif "state DORMANT" in line:
                         state = "DORMANT"
-                    
+
                     interfaces[current_iface] = {
                         "ipv4": [],
                         "ipv6": [],
@@ -315,7 +316,7 @@ def _parse_windows_ipconfig() -> Dict[str, Any]:
 def get_docker_port_mappings() -> Dict[int, str]:
     mappings = {}
     try:
-        proc = subprocess.run(["docker", "ps", "--format", "{{.Ports}}\t{{.Names}}"], 
+        proc = subprocess.run(["docker", "ps", "--format", "{{.Ports}}\t{{.Names}}"],
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if proc.returncode == 0:
             for line in proc.stdout.splitlines():
@@ -334,7 +335,7 @@ def _get_listening_ports_windows(docker_mappings: Dict[int, str]) -> List[Dict[s
     ports = []
     pid_map = {}
     try:
-        proc = subprocess.run(["tasklist", "/FO", "CSV", "/NH"], 
+        proc = subprocess.run(["tasklist", "/FO", "CSV", "/NH"],
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if proc.returncode == 0:
             import csv
@@ -345,9 +346,9 @@ def _get_listening_ports_windows(docker_mappings: Dict[int, str]) -> List[Dict[s
                     pid_map[row[1]] = row[0]
     except Exception:
         pass
-        
+
     try:
-        proc = subprocess.run(["netstat", "-ano"], 
+        proc = subprocess.run(["netstat", "-ano"],
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if proc.returncode == 0:
             for line in proc.stdout.splitlines():
@@ -433,7 +434,7 @@ def _get_listening_ports_unix(docker_mappings: Dict[int, str]) -> List[Dict[str,
         pass
 
     try:
-        proc = subprocess.run(["lsof", "-iTCP", "-sTCP:LISTEN", "-P", "-n"], 
+        proc = subprocess.run(["lsof", "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if proc.returncode == 0:
             for line in proc.stdout.splitlines():

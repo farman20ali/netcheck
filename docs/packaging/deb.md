@@ -31,7 +31,7 @@ Priority: optional
 Maintainer: netcheck builder <netcheck@example.com>
 Build-Depends: debhelper-compat (= 12)
 Standards-Version: 4.6.2
-Homepage: https://github.com/farman20ali/network_access_check
+Homepage: https://github.com/farman20ali/netcheck
 Rules-Requires-Root: no
 
 Package: netcheck
@@ -128,7 +128,7 @@ python publish_packages.py --github-release v2.3.0
 ```
 Users can then download and install it manually:
 ```bash
-wget https://github.com/farman20ali/network_access_check/releases/download/v2.3.0/netcheck_2.3.0-1_all.deb
+wget https://github.com/farman20ali/netcheck/releases/download/v2.3.0/netcheck_2.3.0-1_all.deb
 sudo dpkg -i netcheck_2.3.0-1_all.deb
 sudo apt-get install -f  # resolves any missing dependencies
 ```

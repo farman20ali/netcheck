@@ -1,0 +1,193 @@
+{
+  "name": "netcheck",
+  "displayName": "NetCheck",
+  "publisher": "farman20ali",
+  "description": "Network diagnostics: TCP, DNS, HTTP, SSL, ping, traceroute, WHOIS — all inside VSCode via the NetCheck MCP server.",
+  "version": "2.5.0",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/farman20ali/netcheck"
+  },
+  "bugs": {
+    "url": "https://github.com/farman20ali/netcheck/issues"
+  },
+  "homepage": "https://github.com/farman20ali/netcheck#readme",
+  "keywords": [
+    "network",
+    "tcp",
+    "dns",
+    "http",
+    "ssl",
+    "ping",
+    "traceroute",
+    "whois",
+    "mcp"
+  ],
+  "categories": [
+    "Other",
+    "Debuggers"
+  ],
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "netcheck.runTcp",
+        "title": "NetCheck: Test TCP Connectivity",
+        "icon": "$(radio-tower)"
+      },
+      {
+        "command": "netcheck.runDns",
+        "title": "NetCheck: DNS Lookup",
+        "icon": "$(server)"
+      },
+      {
+        "command": "netcheck.runHttp",
+        "title": "NetCheck: HTTP Check",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "netcheck.runSsl",
+        "title": "NetCheck: SSL Certificate",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "netcheck.runPing",
+        "title": "NetCheck: Ping Host",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "netcheck.runTraceroute",
+        "title": "NetCheck: Traceroute",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "netcheck.runScan",
+        "title": "NetCheck: Port Scan",
+        "icon": "$(search)"
+      },
+      {
+        "command": "netcheck.runWhois",
+        "title": "NetCheck: WHOIS Lookup",
+        "icon": "$(info)"
+      },
+      {
+        "command": "netcheck.clearResults",
+        "title": "NetCheck: Clear Results",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "netcheck.restartMcp",
+        "title": "NetCheck: Restart MCP Server",
+        "icon": "$(refresh)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "netcheck-panel",
+          "title": "NetCheck",
+          "icon": "$(radio-tower)"
+        }
+      ]
+    },
+    "views": {
+      "netcheck-panel": [
+        {
+          "id": "netcheckView",
+          "name": "Results",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "netcheck.runTcp",
+          "when": "editorTextFocus",
+          "group": "netcheck@1"
+        },
+        {
+          "command": "netcheck.runDns",
+          "when": "editorTextFocus",
+          "group": "netcheck@2"
+        },
+        {
+          "command": "netcheck.runHttp",
+          "when": "editorTextFocus",
+          "group": "netcheck@3"
+        },
+        {
+          "command": "netcheck.runSsl",
+          "when": "editorTextFocus",
+          "group": "netcheck@4"
+        },
+        {
+          "command": "netcheck.runWhois",
+          "when": "editorTextFocus",
+          "group": "netcheck@5"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "netcheck.clearResults",
+          "when": "view == netcheckView",
+          "group": "navigation"
+        },
+        {
+          "command": "netcheck.restartMcp",
+          "when": "view == netcheckView",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "NetCheck",
+      "properties": {
+        "netcheck.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Path to the Python interpreter that has netcheck installed."
+        },
+        "netcheck.defaultTimeout": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 60,
+          "description": "Default timeout in seconds for network checks."
+        },
+        "netcheck.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show NetCheck status in the status bar."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && tsc -p ./tsconfig.test.json && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.18.0",
+    "@typescript-eslint/parser": "^6.18.0",
+    "@vscode/test-electron": "^2.3.8",
+    "eslint": "^8.56.0",
+    "mocha": "^10.2.0",
+    "typescript": "^5.3.3"
+  }
+}

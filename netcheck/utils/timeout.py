@@ -1,6 +1,6 @@
 import atexit
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-from typing import Callable, TypeVar, Any
+from typing import Any, Callable, TypeVar
 
 T = TypeVar('T')
 
@@ -20,7 +20,7 @@ def run_with_timeout(timeout: float, func: Callable[..., T], *args: Any, **kwarg
     """
     if timeout is None or timeout <= 0:
         return func(*args, **kwargs)
-        
+
     future = _timeout_executor.submit(func, *args, **kwargs)
     try:
         return future.result(timeout=timeout)

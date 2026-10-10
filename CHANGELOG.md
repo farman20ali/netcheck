@@ -5,6 +5,44 @@ All notable changes to netcheck will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-10-10
+
+### Fixed
+- **Repo rename completion** (`network_access_check` → `netcheck`): removed stray `netcheck` token causing a PowerShell syntax error in the Winget release step; updated GitHub Releases download URL to the new repo path.
+- **CI lint (`flake8: command not found`)**: `flake8` was not in `dev` dependencies; replaced both `flake8` commands in `ci.yml` with `ruff check netcheck` (already a dev dep, configured in `pyproject.toml`).
+- **`F824` unused `global` declaration**: removed `global _metrics_registry` from `_record_results_and_check_alerts` in `subcommands.py` — the variable is only read there; assignment lives in `_run_serve`.
+- **Invalid `# noqa` directive** in `cli/main.py`: replaced `# noqa: unreachable` (not a real rule code) with a plain comment.
+- **Unsorted import block** in `post_install.py`: fixed `__future__` import ordering (`ruff I001`).
+- **Python 3.8/3.9 `SyntaxError`** in `test_mtr.py` and `test_udp.py`: parenthesized `with (cm1, cm2 as x):` syntax requires Python 3.10+; rewritten as nested `with` statements compatible with all supported versions.
+- **Cache TTL overwrite race** (`netcheck/utils/cache.py`): `set()` now computes `expiry` inside the lock with a single `time.time()` call and skips the key being written during expired-key cleanup to prevent self-eviction.
+- **Flaky cache test** (`test_overwrite_resets_ttl`): replaced `time.sleep`-based assertions with `patch('netcheck.utils.cache.time')` for fully deterministic, jitter-immune timing; added two new edge-case tests.
+
+### Changed
+- CI lint step migrated from `flake8` to `ruff` (no functional change — same rule coverage).
+
+## [2.4.0] - 2026-08-26
+
+### Added
+- **OS Keychain Credential Storage**: All sensitive alerting credentials (SMTP password, SMTP sender, SMTP recipients, Slack webhook URL, generic webhook bearer token) are now stored in the OS credential manager (Windows Credential Manager, macOS Keychain, GNOME Keyring/KWallet) via the `keyring` library. `config.yaml` no longer stores any secrets.
+- **`config purge`**: Wipes `config.yaml` and clears all five keyring secrets in one command — useful for machine decommission or full credential rotation.
+- **`config test-alert <channel>`**: Fires a real test alert immediately to `email`, `slack`, `desktop`, or `webhook` without running a watch loop. Reports `SUCCESS` or `FAILED` with full error output.
+- **`config show` keyring panel**: Displays both YAML config values and OS keyring status side-by-side with masked credential previews (e.g. `se...@gmail.com`).
+- **Directional alert cooldowns**: UP and DOWN cooldown timers are now tracked independently per target so that recovery and re-failure alerts are never incorrectly suppressed by a cross-direction cooldown.
+- **`--alert-on` flag**: Filter which state transitions trigger alerts — `any` (default), `down`, or `up`.
+- **Native desktop notifications**: `--alert desktop` uses WinRT Action Center toasts on Windows 10/11 (PowerShell fallback to balloon tip), `osascript` on macOS, and `notify-send` on Linux, with optional `plyer` support.
+- **Watch mode rolling alert log**: A persistent "Recent Alerts & Logs" panel (up to 8 entries) is rendered at the bottom of the watch window so screen refreshes no longer erase alert history.
+- **Watch loop resilience**: `SystemExit` raised by subcommands (e.g. `traceroute`) is now caught inside the watch loop so the loop continues uninterrupted.
+- **Legacy single-dash option normalisation**: `-tcp`, `-udp`, `-mtr`, `-dns`, `-http`, `-ssl`, `-ping`, `-scan`, `-whois` are normalised to their subcommand equivalents at the CLI entry point.
+- **6 new unit tests** in `test_alerting.py`: directional cooldown correctness, `alert_on` filter all three modes, keyring getter mocking.
+- **8 new unit tests** in `test_config.py`: `purge()`, `show()` keyring display formatting, `get_smtp_user()`, `get_smtp_to()`.
+
+### Fixed
+- **SMTP `SMTPAuthenticationError` / header accumulation bug**: Rewrote `send_email_alert` to use `smtp.send_message()` (instead of `smtp.sendmail()`) and `del msg["To"]` before each recipient, matching the proven reference implementation. Multi-recipient sends now reuse a single SMTP connection.
+
+### Changed
+- `--alert-cooldown` default reduced from 300 s to 60 s to be more responsive in desktop/development usage.
+- `config show` output extended with a "Keyring / Secure Store" section showing all five credential statuses.
+
 ## [2.3.0] - 2026-07-30
 
 ### Added
@@ -234,10 +272,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-OS support (Ubuntu, Debian, CentOS, Fedora, Arch, openSUSE)
 - Three installation methods (manual, DEB, Snap)
 
-[2.3.0]: https://github.com/farman20ali/network_access_check/compare/v2.2.0...v2.3.0
-[2.2.0]: https://github.com/farman20ali/network_access_check/compare/v2.1.0...v2.2.0
-[2.1.0]: https://github.com/farman20ali/network_access_check/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/farman20ali/network_access_check/compare/v1.2.0...v2.0.0
-[1.2.0]: https://github.com/farman20ali/network_access_check/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/farman20ali/network_access_check/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/farman20ali/network_access_check/releases/tag/v1.0.0
+[2.5.0]: https://github.com/farman20ali/netcheck/compare/v2.4.0...v2.5.0
+[2.4.0]: https://github.com/farman20ali/netcheck/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/farman20ali/netcheck/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/farman20ali/netcheck/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/farman20ali/netcheck/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/farman20ali/netcheck/compare/v1.2.0...v2.0.0
+[1.2.0]: https://github.com/farman20ali/netcheck/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/farman20ali/netcheck/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/farman20ali/netcheck/releases/tag/v1.0.0

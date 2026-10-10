@@ -1,4 +1,4 @@
-.PHONY: help install uninstall test clean
+.PHONY: help install uninstall test clean vscode-deps vscode-build vscode-dev vscode-publish vscode-clean
 
 # Default target
 help:
@@ -32,3 +32,32 @@ clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
 	@rm -f result-* fail-* combined-*
 	@echo "Done!"
+
+# ── VSCode Extension ─────────────────────────────────────────────────────────
+
+## Install Node.js dependencies for the VSCode extension
+vscode-deps:
+	cd packaging/vscode && npm install
+
+## Compile TypeScript and build .vsix package
+vscode-build: vscode-deps
+	cd packaging/vscode && npm run compile
+	cd packaging/vscode && npx vsce package --no-dependencies
+
+## Launch the Extension Development Host for interactive debugging
+vscode-dev: vscode-deps
+	cd packaging/vscode && npm run compile
+	code --extensionDevelopmentPath=$(CURDIR)/packaging/vscode
+
+## Publish extension to VS Code Marketplace (requires VSCODE_PAT env var)
+vscode-publish: vscode-build
+	@if [ -z "$(VSCODE_PAT)" ]; then \
+		echo "Error: VSCODE_PAT is not set. Export it before running make vscode-publish."; \
+		exit 1; \
+	fi
+	cd packaging/vscode && npx vsce publish --pat $(VSCODE_PAT)
+
+## Remove compiled extension output
+vscode-clean:
+	@rm -rf packaging/vscode/out packaging/vscode/*.vsix packaging/vscode/node_modules
+

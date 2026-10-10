@@ -371,6 +371,8 @@ jobs:
         shell: bash
         run: find choco-download -type f
 
+
+
       - name: Push to Chocolatey
         if: env.CHOCO_API_KEY != ''
         shell: pwsh
@@ -389,4 +391,117 @@ jobs:
         shell: pwsh
         env:
           CHOCO_API_KEY: ${{ secrets.CHOCO_API_KEY }}
-        run: Write-Host "CHOCO_API_KEY not set — skipping Chocolatey publish."
+        run: Write-Host "CHOCO_API_KEY not set - skipping Chocolatey publish."
+
+  publish-homebrew:
+    name: Publish to Homebrew Tap
+    needs: create-release
+    runs-on: ubuntu-latest
+    env:
+      HOMEBREW_GITHUB_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+    steps:
+      - name: Checkout Homebrew Tap Repo
+        if: env.HOMEBREW_GITHUB_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          repository: farman20ali/homebrew-netcheck
+          token: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+
+      - name: Update Formula
+        if: env.HOMEBREW_GITHUB_TOKEN != ''
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION_NUM="${VERSION#v}"
+          TARBALL_URL="https://files.pythonhosted.org/packages/source/n/netcheckx/netcheckx-${VERSION_NUM}.tar.gz"
+          SHA256=$(curl -sL "$TARBALL_URL" | sha256sum | cut -d' ' -f1)
+          if [ -z "$SHA256" ]; then
+            echo "Failed to calculate SHA256"
+            exit 1
+          fi
+          sed -i "s|url \".*\"|url \"$TARBALL_URL\"|" netcheck.rb
+          sed -i "s|sha256 \".*\"|sha256 \"$SHA256\"|" netcheck.rb
+          git config user.email "ci@github.com"
+          git config user.name "GitHub Actions"
+          git commit -am "Update netcheck to ${VERSION}"
+          git push
+
+      - name: Skip notice
+        if: env.HOMEBREW_GITHUB_TOKEN == ''
+        run: echo "HOMEBREW_GITHUB_TOKEN not set - skipping Homebrew tap update."
+
+  publish-winget:
+    name: Publish to Winget
+    needs: create-release
+    runs-on: windows-latest
+    env:
+      WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+    steps:
+      - name: Install wingetcreate
+        if: env.WINGET_GITHUB_TOKEN != ''
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/microsoft/winget-create/releases/download/v1.6.3.0/wingetcreate.exe -OutFile wingetcreate.exe
+          Move-Item wingetcreate.exe C:\Windows\System32\
+
+      - name: Submit Winget Manifest
+        if: env.WINGET_GITHUB_TOKEN != ''
+        shell: pwsh
+        run: |
+          $TAG_NAME = "${{ github.ref_name }}"
+          $VERSION = $TAG_NAME.Substring(1)
+          $URL = "https://github.com/farman20ali/netcheck/releases/download/$TAG_NAME/netcheck-$VERSION-setup.exe"
+          wingetcreate update farman20ali.netcheck --version $VERSION --urls $URL --submit --token $env:WINGET_GITHUB_TOKEN
+
+      - name: Skip notice
+        if: env.WINGET_GITHUB_TOKEN == ''
+        shell: pwsh
+        run: Write-Host "WINGET_GITHUB_TOKEN not set - skipping Winget update."
+
+  build-vscode:
+    name: Build VSCode Extension (.vsix)
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: cd packaging/vscode && npm install
+
+      - name: Compile TypeScript
+        run: cd packaging/vscode && npm run compile
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: Package extension
+        run: cd packaging/vscode && vsce package --no-dependencies
+
+      - name: Upload .vsix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-extension
+          path: packaging/vscode/*.vsix
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: packaging/vscode/*.vsix
+
+      - name: Publish to VS Code Marketplace
+        if: startsWith(github.ref, 'refs/tags/') && env.VSCODE_PAT != ''
+        env:
+          VSCODE_PAT: ${{ secrets.VSCODE_PAT }}
+        run: cd packaging/vscode && vsce publish --pat $VSCODE_PAT
+
+      - name: Skip Marketplace publish
+        if: env.VSCODE_PAT == ''
+        env:
+          VSCODE_PAT: ${{ secrets.VSCODE_PAT }}
+        run: echo "VSCODE_PAT not set - skipping Marketplace publish."

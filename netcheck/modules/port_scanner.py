@@ -1,7 +1,8 @@
 import socket
 import time
-from typing import Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any, Dict, List
+
 from netcheck.modules.dns import dns_lookup
 from netcheck.utils.services import get_service_name
 
@@ -43,7 +44,7 @@ def scan_ports(host: str, ports: List[int] = None, timeout: float = 1.5, max_wor
     """
     if not ports:
         ports = COMMON_PORTS
-        
+
     result = {
         "type": "scan",
         "target": host,
@@ -58,26 +59,26 @@ def scan_ports(host: str, ports: List[int] = None, timeout: float = 1.5, max_wor
         }
     }
 
-    
+
     start_time = time.perf_counter()
-    
+
     # Resolve target host IP
     dns_res = dns_lookup(host, timeout=3.0)
     if not dns_res["success"]:
         result["error"] = f"DNS Resolution failed: {dns_res['error']}"
         return result
-        
+
     ips = dns_res["metadata"]["ips"]
     if not ips:
         result["error"] = "No IP addresses resolved"
         return result
-        
+
     result["metadata"]["ips"] = ips
     ip_to_scan = ips[0] # Use first resolved IP
-    
+
     open_ports = []
     closed_ports = []
-    
+
     # Execute checks concurrently
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(scan_port_single, ip_to_scan, p, timeout): p for p in ports}
@@ -87,17 +88,17 @@ def scan_ports(host: str, ports: List[int] = None, timeout: float = 1.5, max_wor
                 open_ports.append(res)
             else:
                 closed_ports.append(res)
-                
+
     # Sort results by port number
     open_ports.sort(key=lambda x: x["port"])
     closed_ports.sort(key=lambda x: x["port"])
-    
+
     duration = (time.perf_counter() - start_time) * 1000.0
-    
+
     result["status"] = "SUCCESS"
     result["success"] = True
     result["latency_ms"] = round(duration, 2)
     result["metadata"]["open_ports"] = open_ports
     result["metadata"]["closed_ports"] = closed_ports
-    
+
     return result

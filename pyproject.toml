@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netcheckx"
-version = "2.3.0"
+version = "2.5.0"
 description = "Network connectivity checker with DNS, ping, HTTP, and SSL validation. (Published as netcheckx on PyPI to avoid naming conflict with legacy netcheck package)"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -26,13 +26,27 @@ dev = [
     "pytest-cov>=4.0.0",
     "build>=1.0.0",
     "pyinstaller>=6.0.0",
-    "flake8>=7.0.0",
+    "ruff>=0.1.0",
 ]
 
 [project.scripts]
 netcheck = "netcheck.cli:main"
 netcheckx = "netcheck.cli:main"
+netcheck-setup = "netcheck.post_install:run"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["netcheck*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort (import sorting)
+]
+ignore = ["E501"]

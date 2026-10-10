@@ -140,7 +140,7 @@ def _debian_skeleton(work: Path, version: str) -> None:
         Maintainer: {maint_name} <{maint_email}>
         Build-Depends: debhelper-compat (= 12)
         Standards-Version: 4.6.2
-        Homepage: https://github.com/farman20ali/network_access_check
+        Homepage: https://github.com/farman20ali/netcheck
         Rules-Requires-Root: no
 
         Package: netcheck
@@ -175,8 +175,8 @@ def _debian_skeleton(work: Path, version: str) -> None:
     (debian / "copyright").write_text(textwrap.dedent("""\
         Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
         Upstream-Name: netcheck
-        Upstream-Contact: https://github.com/farman20ali/network_access_check
-        Source: https://github.com/farman20ali/network_access_check
+        Upstream-Contact: https://github.com/farman20ali/netcheck
+        Source: https://github.com/farman20ali/netcheck
 
         Files: *
         Copyright: 2024-2026 Network Tools <netcheck@example.com>
@@ -248,7 +248,7 @@ def _rpm_spec(version: str) -> str:
         Release:        1%{{?dist}}
         Summary:        Network connectivity checker (DNS, ping, HTTP, TCP, SSL)
         License:        GPL-3.0+
-        URL:            https://github.com/farman20ali/network_access_check
+        URL:            https://github.com/farman20ali/netcheck
         BuildArch:      noarch
         Requires:       python3
 
@@ -299,7 +299,13 @@ def build_rpm() -> None:
 
     # Write spec file
     spec_path = rpm_home / "SPECS" / "netcheck.spec"
-    spec_path.write_text(_rpm_spec(version))
+    repo_spec = REPO_ROOT / "packaging" / "linux" / "netcheck.spec"
+    if repo_spec.exists():
+        spec_content = repo_spec.read_text(encoding="utf-8")
+        spec_path.write_text(spec_content, encoding="utf-8")
+        print("Using packaging/linux/netcheck.spec template")
+    else:
+        spec_path.write_text(_rpm_spec(version))
 
     # Copy source tree into SOURCES so the spec can reference it
     src_dest = rpm_home / "SOURCES" / "netcheck"
@@ -467,7 +473,7 @@ def _build_win_installer_legacy(version: str) -> None:
 !define PRODUCT_NAME "netcheck"
 !define PRODUCT_VERSION "{version}"
 !define PRODUCT_PUBLISHER "Network Tools Team"
-!define PRODUCT_WEB_SITE "https://github.com/farman20ali/network_access_check"
+!define PRODUCT_WEB_SITE "https://github.com/farman20ali/netcheck"
 
 SetCompressor lzma
 
@@ -573,7 +579,7 @@ def build_choco_package(version: str, checksum_val: str | None = None, checksum_
 
     # 3. Calculate from GitHub release
     elif checksum_from_release:
-        url = f"https://github.com/farman20ali/network_access_check/releases/download/v{version}/netcheck-{version}-setup.exe"
+        url = f"https://github.com/farman20ali/netcheck/releases/download/v{version}/netcheck-{version}-setup.exe"
         print(f"Downloading and calculating checksum from GitHub release URL:\n  {url}")
         try:
             import urllib.request
@@ -677,8 +683,8 @@ def _build_choco_package_legacy(version: str) -> None:
     <title>NetCheck</title>
     <authors>Network Tools Team</authors>
     <owners>Network Tools Team</owners>
-    <projectUrl>https://github.com/farman20ali/network_access_check</projectUrl>
-    <licenseUrl>https://github.com/farman20ali/network_access_check/blob/main/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/farman20ali/netcheck</projectUrl>
+    <licenseUrl>https://github.com/farman20ali/netcheck/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Network connectivity checker with DNS, ping, HTTP, and SSL validation</description>
     <summary>A premium, cross-platform network diagnostic engine</summary>
@@ -758,6 +764,75 @@ def build_pypi() -> None:
     run([PYTHON_CMD, "-m", "build"], "PyPI Package Builder (wheel + sdist)")
 
 
+def build_vscode() -> None:
+    print("\n─── Building VSCode Extension (.vsix) ───")
+    # Verify npm is installed
+    npm_ok = tool_ok("npm") or tool_ok("npm.cmd")
+    if not npm_ok:
+        print("⚠️   npm not found. Skipping VSCode extension build.")
+        return
+
+    ext_dir = REPO_ROOT / "packaging" / "vscode"
+    if not ext_dir.exists():
+        print(f"⚠️   VSCode extension directory not found at {ext_dir}. Skipping.")
+        return
+
+    npm_cmd = "npm.cmd" if platform.system().lower() == "windows" else "npm"
+    run([npm_cmd, "install"], "npm install", cwd=ext_dir)
+    run([npm_cmd, "run", "compile"], "npm run compile", cwd=ext_dir)
+
+    # Use npx to package without needing vsce installed globally
+    run([npm_cmd, "exec", "--", "vsce", "package", "--no-dependencies"], "vsce package", cwd=ext_dir)
+
+    out_dir = DIST_DIR / "vscode"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    vsixs = list(ext_dir.glob("*.vsix"))
+    for v in vsixs:
+        dest = out_dir / v.name
+        shutil.copy2(v, dest)
+        v.unlink()
+        print(f"\n✅  VSCode Extension package: {dest}")
+
+
+def collect_manifests() -> None:
+    print("\n─── Collecting Manifests to dist/ ───")
+    # Homebrew
+    hb_src = REPO_ROOT / "packaging" / "homebrew" / "netcheck.rb"
+    if hb_src.exists():
+        dest_dir = DIST_DIR / "homebrew"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(hb_src, dest_dir / "netcheck.rb")
+        print("✓ Collected Homebrew formula")
+
+    # Scoop
+    scoop_src = REPO_ROOT / "packaging" / "windows" / "scoop" / "netcheck.json"
+    if scoop_src.exists():
+        dest_dir = DIST_DIR / "scoop"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(scoop_src, dest_dir / "netcheck.json")
+        print("✓ Collected Scoop manifest")
+
+    # AUR
+    aur_dir = REPO_ROOT / "packaging" / "aur"
+    if aur_dir.exists():
+        dest_dir = DIST_DIR / "aur"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        for f in ("PKGBUILD", ".SRCINFO", "README.md"):
+            src = aur_dir / f
+            if src.exists():
+                shutil.copy2(src, dest_dir / f)
+        print("✓ Collected AUR packaging files")
+
+    # Winget
+    winget_dir = REPO_ROOT / "packaging" / "winget" / "manifests"
+    if winget_dir.exists():
+        dest_dir = DIST_DIR / "winget"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        for f in winget_dir.glob("*.yaml"):
+            shutil.copy2(f, dest_dir / f.name)
+        print("✓ Collected WinGet manifests")
+
+
 # ── --all ──────────────────────────────────────────────────────────────────────
 
 def build_all(checksum_val: str | None = None, checksum_from_release: bool = False, checksum_file: str | None = None) -> None:
@@ -826,7 +901,36 @@ def sync_version(new_version: str) -> None:
         ("netcheck/mcp/server.py",
          r'"version":\s*[\'"][^\'"]+[\'"]',
          f'"version": "{new_version}"'),
-        # packaging templates use literal {version} placeholders – skip regex here
+        ("packaging/linux/netcheck.spec",
+         r'(?m)^Version:\s*\S+',
+         f'Version:        {new_version}'),
+        ("packaging/windows/scoop/netcheck.json",
+         r'"version":\s*[\'"][^\'"]+[\'"]',
+         f'"version": "{new_version}"'),
+        ("packaging/windows/scoop/netcheck.json",
+         r'releases/download/v[^/]+/netcheck-[^/]+-win-x64\.zip',
+         f'releases/download/v{new_version}/netcheck-{new_version}-win-x64.zip'),
+        ("packaging/homebrew/netcheck.rb",
+         r'netcheckx-[0-9a-zA-Z.-]+\.tar\.gz',
+         f'netcheckx-{new_version}.tar.gz'),
+        ("packaging/aur/PKGBUILD",
+         r'(?m)^pkgver=\S+',
+         f'pkgver={new_version}'),
+        ("packaging/winget/manifests/farman20ali.netcheck.yaml",
+         r'(?m)^PackageVersion:\s*\S+',
+         f'PackageVersion: {new_version}'),
+        ("packaging/winget/manifests/farman20ali.netcheck.installer.yaml",
+         r'(?m)^PackageVersion:\s*\S+',
+         f'PackageVersion: {new_version}'),
+        ("packaging/winget/manifests/farman20ali.netcheck.installer.yaml",
+         r'download/v[^/]+/netcheck-[^/]+-setup\.exe',
+         f'download/v{new_version}/netcheck-{new_version}-setup.exe'),
+        ("packaging/winget/manifests/farman20ali.netcheck.locale.en-US.yaml",
+         r'(?m)^PackageVersion:\s*\S+',
+         f'PackageVersion: {new_version}'),
+        ("packaging/winget/manifests/farman20ali.netcheck.locale.en-US.yaml",
+         r'releases/tag/v\S+',
+         f'releases/tag/v{new_version}'),
     ]
 
     for rel, pattern, repl in _subs:
@@ -879,6 +983,8 @@ def main() -> None:
     p.add_argument("--choco-checksum-from-release", action="store_true", help="Download the setup installer from the GitHub release to calculate checksum")
     p.add_argument("--choco-checksum-file",                help="Read the SHA-256 checksum from a file (or calculate the checksum of that file)")
     p.add_argument("--mac",          action="store_true",  help="Build macOS binary + PKG")
+    p.add_argument("--vscode",       action="store_true",  help="Build VSCode extension (.vsix)")
+    p.add_argument("--manifests",    action="store_true",  help="Collect Homebrew/Scoop/AUR/Winget manifests to dist/")
     p.add_argument("--all",          action="store_true",  help="Build all for current OS")
     args = p.parse_args()
 
@@ -892,7 +998,12 @@ def main() -> None:
     elif args.win:          build_win(checksum_val=args.choco_checksum, checksum_from_release=args.choco_checksum_from_release, checksum_file=args.choco_checksum_file)
     elif args.choco:        build_choco_package(get_version(), checksum_val=args.choco_checksum, checksum_from_release=args.choco_checksum_from_release, checksum_file=args.choco_checksum_file)
     elif args.mac:          build_mac()
-    elif args.all:          build_all(checksum_val=args.choco_checksum, checksum_from_release=args.choco_checksum_from_release, checksum_file=args.choco_checksum_file)
+    elif args.vscode:       build_vscode()
+    elif args.manifests:    collect_manifests()
+    elif args.all:
+        build_all(checksum_val=args.choco_checksum, checksum_from_release=args.choco_checksum_from_release, checksum_file=args.choco_checksum_file)
+        build_vscode()
+        collect_manifests()
     else:                   p.print_help()
 
 

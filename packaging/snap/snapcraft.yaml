@@ -1,13 +1,13 @@
 name: netcheck
-version: '{version}'
+version: '2.5.0'
 summary: Cross-platform network diagnostics engine (DNS, TCP, HTTP, ping, MCP)
 title: NetCheck - Network Connectivity Tester
 icon: snap/gui/icon.png
 license: GPL-3.0-only
-website: https://github.com/farman20ali/network_access_check
-source-code: https://github.com/farman20ali/network_access_check
-issues: https://github.com/farman20ali/network_access_check/issues
-contact: https://github.com/farman20ali/network_access_check/issues
+website: https://github.com/farman20ali/netcheck
+source-code: https://github.com/farman20ali/netcheck
+issues: https://github.com/farman20ali/netcheck/issues
+contact: https://github.com/farman20ali/netcheck/issues
 description: |
   A premium, cross-platform network intelligence engine and CLI — rewritten
   in pure Python 3 with zero external binary dependencies.

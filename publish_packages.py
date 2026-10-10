@@ -287,7 +287,7 @@ def publish_github_release(tag: str) -> None:
         + [str(a) for a in sorted(artefacts)]
     )
     _run(cmd, f"gh release create {tag}")
-    print(f"🔗  https://github.com/farman20ali/network_access_check/releases/tag/{tag}")
+    print(f"🔗  https://github.com/farman20ali/netcheck/releases/tag/{tag}")
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────

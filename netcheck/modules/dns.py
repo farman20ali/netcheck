@@ -1,10 +1,12 @@
 import socket
 import time
-from typing import Dict, Any, List
 from concurrent.futures import TimeoutError
+from typing import Any, Dict
+
 from netcheck.utils.cache import dns_cache
 from netcheck.utils.normalize import normalize_host
 from netcheck.utils.timeout import run_with_timeout
+
 
 def dns_lookup(raw_target: str, timeout: float = 5.0) -> Dict[str, Any]:
     """
@@ -22,7 +24,7 @@ def dns_lookup(raw_target: str, timeout: float = 5.0) -> Dict[str, Any]:
             "error": "Empty host target",
             "metadata": {}
         }
-        
+
     result = {
         "type": "dns",
         "target": raw_target,
@@ -38,7 +40,7 @@ def dns_lookup(raw_target: str, timeout: float = 5.0) -> Dict[str, Any]:
         }
     }
 
-    
+
     # Check if target is already an IP address
     is_ip = False
     for family in (socket.AF_INET, socket.AF_INET6):
@@ -48,7 +50,7 @@ def dns_lookup(raw_target: str, timeout: float = 5.0) -> Dict[str, Any]:
             break
         except OSError:
             pass
-            
+
     if is_ip:
         result["status"] = "SUCCESS"
         result["success"] = True
@@ -78,7 +80,7 @@ def dns_lookup(raw_target: str, timeout: float = 5.0) -> Dict[str, Any]:
                 ai = socket.getaddrinfo(host, None, flags=socket.AI_CANONNAME)
             except Exception:
                 ai = socket.getaddrinfo(host, None)
-            
+
             aliases = []
             try:
                 _, alias_list, _ = socket.gethostbyname_ex(host)
@@ -86,24 +88,24 @@ def dns_lookup(raw_target: str, timeout: float = 5.0) -> Dict[str, Any]:
             except Exception:
                 pass
             return ai, aliases
-            
+
         addr_info, aliases = run_with_timeout(timeout, _resolve)
         duration_ms = (time.perf_counter() - start_time) * 1000.0
-        
+
         ips = list(set(info[4][0] for info in addr_info))
-        
+
         for info in addr_info:
             if len(info) > 3 and info[3]:
                 canon = info[3]
                 if canon != host and canon not in aliases:
                     aliases.append(canon)
-                    
+
         result["status"] = "SUCCESS"
         result["success"] = True
         result["latency_ms"] = round(duration_ms, 2)
         result["metadata"]["ips"] = ips
         result["metadata"]["aliases"] = aliases
-        
+
         if ips:
             try:
                 def _reverse():
@@ -113,7 +115,7 @@ def dns_lookup(raw_target: str, timeout: float = 5.0) -> Dict[str, Any]:
                 result["metadata"]["reverse_dns"] = rev_name
             except Exception as rev_err:
                 result["metadata"]["reverse_dns_error"] = str(rev_err)
-                
+
         # Cache successful resolutions
         dns_cache.set(host, {
             "status": "SUCCESS",
@@ -121,7 +123,7 @@ def dns_lookup(raw_target: str, timeout: float = 5.0) -> Dict[str, Any]:
             "latency_ms": result["latency_ms"],
             "metadata": result["metadata"]
         })
-        
+
     except TimeoutError as e:
         duration_ms = (time.perf_counter() - start_time) * 1000.0
         result["latency_ms"] = round(duration_ms, 2)

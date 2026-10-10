@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop';
 $packageName = 'netcheck'
 $toolsDir   = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
 $version    = '{version}'
-$url64      = "https://github.com/farman20ali/network_access_check/releases/download/v$version/netcheck-$version-setup.exe"
+$url64      = "https://github.com/farman20ali/netcheck/releases/download/v$version/netcheck-$version-setup.exe"
 $checksum64 = '{checksum64}'
 
 Write-Host "Downloading netcheck v$version from GitHub releases..."

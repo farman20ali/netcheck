@@ -1,11 +1,10 @@
-import socket
-import os
-import sys
-import time
 import platform
-import subprocess
 import re
-from typing import Dict, Any, List
+import socket
+import subprocess
+import time
+from typing import Any, Dict, List
+
 
 def run_native_traceroute(host: str, max_hops: int = 30, timeout: float = 2.0) -> List[Dict[str, Any]]:
     """
@@ -14,20 +13,20 @@ def run_native_traceroute(host: str, max_hops: int = 30, timeout: float = 2.0) -
     """
     dest_ip = socket.gethostbyname(host)
     icmp_proto = socket.getprotobyname("icmp")
-    
+
     hops = []
-    
+
     for ttl in range(1, max_hops + 1):
         # Create raw sockets
         # rx socket to listen to ICMP replies
         rx = socket.socket(socket.AF_INET, socket.SOCK_RAW, icmp_proto)
         rx.settimeout(timeout)
         rx.bind(("", 0))
-        
+
         # tx socket to send ICMP Echo Request with custom TTL
         tx = socket.socket(socket.AF_INET, socket.SOCK_RAW, icmp_proto)
         tx.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
-        
+
         # Build a simple ICMP Echo Request packet (Type 8, Code 0)
         # Header: Type (1 byte), Code (1 byte), Checksum (2 bytes), ID (2 bytes), Sequence (2 bytes)
         # For a simple ping, checksum can be computed or we can let OS handle it, but raw sockets usually require checksum.
@@ -35,7 +34,7 @@ def run_native_traceroute(host: str, max_hops: int = 30, timeout: float = 2.0) -
         # Type=8, Code=0, Checksum=0 (will calculate), ID=12345, Seq=ttl
         packet_id = 12345
         header = bytearray([8, 0, 0, 0, (packet_id >> 8) & 0xff, packet_id & 0xff, (ttl >> 8) & 0xff, ttl & 0xff])
-        
+
         # Compute checksum
         def checksum(source_string):
             sum_val = 0
@@ -55,15 +54,15 @@ def run_native_traceroute(host: str, max_hops: int = 30, timeout: float = 2.0) -
             answer = answer & 0xffff
             answer = answer >> 8 | (answer << 8 & 0xff00)
             return answer
-            
+
         csum = checksum(header)
         header[2] = (csum >> 8) & 0xff
         header[3] = csum & 0xff
-        
+
         curr_ip = None
         curr_name = ""
         latency_ms = None
-        
+
         start_time = time.perf_counter()
         try:
             tx.sendto(header, (dest_ip, 0))
@@ -82,17 +81,17 @@ def run_native_traceroute(host: str, max_hops: int = 30, timeout: float = 2.0) -
         finally:
             tx.close()
             rx.close()
-            
+
         hops.append({
             "hop": ttl,
             "ip": curr_ip or "*",
             "name": curr_name or "*",
             "latency_ms": latency_ms
         })
-        
+
         if curr_ip == dest_ip:
             break
-            
+
     return hops
 
 def parse_tracert_output_windows(output: str) -> List[Dict[str, Any]]:
@@ -110,21 +109,21 @@ def parse_tracert_output_windows(output: str) -> List[Dict[str, Any]]:
         match = re.match(r"^(\d+)\s+([\s\S]+)$", line)
         if not match:
             continue
-            
+
         hop_num = int(match.group(1))
         rest = match.group(2).strip()
-        
+
         # Find IP/Host at the end of the line
         # Tracert prints: <ms values> [optionally host] [IP]
         parts = rest.split()
         if not parts:
             continue
-            
+
         # Get target IP/host
         target = parts[-1]
         # Strip brackets if present
         target = target.strip("[]()")
-        
+
         # Get latency values
         latencies = []
         for p in parts[:-1]:
@@ -134,9 +133,9 @@ def parse_tracert_output_windows(output: str) -> List[Dict[str, Any]]:
                     latencies.append(float(p_clean))
                 except ValueError:
                     pass
-                    
+
         avg_latency = round(sum(latencies) / len(latencies), 2) if latencies else None
-        
+
         hops.append({
             "hop": hop_num,
             "ip": target,
@@ -161,10 +160,10 @@ def parse_traceroute_output_unix(output: str) -> List[Dict[str, Any]]:
         match = re.match(r"^(\d+):?\s+([\s\S]+)$", line)
         if not match:
             continue
-            
+
         hop_num = int(match.group(1))
         rest = match.group(2).strip()
-        
+
         if rest.startswith("*"):
             hops.append({
                 "hop": hop_num,
@@ -173,17 +172,17 @@ def parse_traceroute_output_unix(output: str) -> List[Dict[str, Any]]:
                 "latency_ms": None
             })
             continue
-            
+
         # Extract IP and latencies
         ip_matches = re.findall(r"\(?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\)?", rest)
         ip_addr = ip_matches[0] if ip_matches else "*"
-        
+
         # Extracted name
         parts = rest.split()
         name = parts[0] if parts else "*"
         if name.startswith("(") or name == ip_addr or name.endswith(":"):
             name = ip_addr
-            
+
         # Find latencies (e.g. 1.234 ms)
         latencies = []
         ms_matches = re.findall(r"(\d+\.?\d*)\s*ms", rest)
@@ -192,9 +191,9 @@ def parse_traceroute_output_unix(output: str) -> List[Dict[str, Any]]:
                 latencies.append(float(m))
             except ValueError:
                 pass
-                
+
         avg_latency = round(sum(latencies) / len(latencies), 2) if latencies else None
-        
+
         hops.append({
             "hop": hop_num,
             "ip": ip_addr,
@@ -208,7 +207,7 @@ def run_subprocess_traceroute(host: str, max_hops: int = 30) -> List[Dict[str, A
     Runs system traceroute command via subprocess.
     """
     is_windows = (platform.system().lower() == "windows")
-    
+
     if is_windows:
         cmd = ["tracert", "-d", "-h", str(max_hops), host]
         try:
@@ -216,7 +215,7 @@ def run_subprocess_traceroute(host: str, max_hops: int = 30) -> List[Dict[str, A
             return parse_tracert_output_windows(proc.stdout)
         except Exception:
             return []
-            
+
     # Try traceroute first
     try:
         cmd = ["traceroute", "-n", "-m", str(max_hops), host]
@@ -225,7 +224,7 @@ def run_subprocess_traceroute(host: str, max_hops: int = 30) -> List[Dict[str, A
             return parse_traceroute_output_unix(proc.stdout)
     except (FileNotFoundError, Exception):
         pass
-        
+
     # Try tracepath as fallback
     try:
         cmd = ["tracepath", "-n", "-m", str(max_hops), host]
@@ -243,7 +242,7 @@ def traceroute(host: str, max_hops: int = 30, timeout: float = 2.0) -> Dict[str,
     if "://" in target:
         target = target.split("://", 1)[1]
     target_host = target.split("/", 1)[0].split(":", 1)[0]
-    
+
     result = {
         "type": "traceroute",
         "target": target_host,
@@ -256,11 +255,11 @@ def traceroute(host: str, max_hops: int = 30, timeout: float = 2.0) -> Dict[str,
         }
     }
 
-    
+
     start_time = time.perf_counter()
     hops = []
     method = "native"
-    
+
     try:
         # Try native raw sockets
         hops = run_native_traceroute(target_host, max_hops, timeout)
@@ -268,13 +267,13 @@ def traceroute(host: str, max_hops: int = 30, timeout: float = 2.0) -> Dict[str,
         # Fallback to subprocess traceroute/tracert
         method = "subprocess"
         hops = run_subprocess_traceroute(target_host, max_hops)
-    except Exception as e:
+    except Exception:
         method = "subprocess"
         hops = run_subprocess_traceroute(target_host, max_hops)
-        
+
     duration = (time.perf_counter() - start_time) * 1000.0
     result["latency_ms"] = round(duration, 2)
-    
+
     if hops:
         result["status"] = "SUCCESS"
         result["success"] = True
@@ -282,5 +281,5 @@ def traceroute(host: str, max_hops: int = 30, timeout: float = 2.0) -> Dict[str,
         result["metadata"]["method"] = method
     else:
         result["error"] = "Failed to run traceroute"
-        
+
     return result

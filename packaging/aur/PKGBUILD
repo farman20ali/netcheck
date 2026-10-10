@@ -1,0 +1,33 @@
+# Maintainer: Farman Ali <alienhub.dev@gmail.com>
+pkgname=netcheck
+pkgver=2.5.0
+pkgrel=1
+pkgdesc="Lightweight network connectivity checker — TCP, DNS, HTTP, SSL, ping, traceroute, WHOIS"
+arch=('any')
+url="https://github.com/farman20ali/netcheck"
+license=('GPL3')
+depends=('python>=3.10' 'python-pip')
+makedepends=('python-build' 'python-installer' 'python-wheel')
+provides=('netcheck')
+conflicts=()
+source=("https://files.pythonhosted.org/packages/source/n/netcheckx/netcheckx-${pkgver}.tar.gz")
+sha256sums=('6d7f023d8c1c4e7a85854728562325c7e145e69e2c65a7e58c0c4e7a8585472a')
+
+build() {
+    cd "netcheckx-${pkgver}"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "netcheckx-${pkgver}"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+    
+    # Install man page if present
+    install -Dm644 "man/netcheck.1" "$pkgdir/usr/share/man/man1/netcheck.1" 2>/dev/null || true
+    
+    # Install bash completion
+    install -Dm644 "completion/netcheck.bash" \
+        "$pkgdir/usr/share/bash-completion/completions/netcheck" 2>/dev/null || true
+    install -Dm644 "completion/netcheck.zsh" \
+        "$pkgdir/usr/share/zsh/site-functions/_netcheck" 2>/dev/null || true
+}

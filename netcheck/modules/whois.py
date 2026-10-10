@@ -1,8 +1,9 @@
-import socket
-import urllib.request
 import json
+import socket
 import time
-from typing import Dict, Any
+import urllib.request
+from typing import Any, Dict
+
 
 def get_rdap_info(target: str, is_ip: bool = False) -> Dict[str, Any]:
     """
@@ -12,12 +13,12 @@ def get_rdap_info(target: str, is_ip: bool = False) -> Dict[str, Any]:
         url = f"https://rdap.db.ripenet.net/ip/{target}"
     else:
         url = f"https://rdap.org/domain/{target}"
-        
+
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "Mozilla/5.0 NetCheck/2.0", "Accept": "application/json"}
     )
-    
+
     with urllib.request.urlopen(req, timeout=5.0) as response:
         content = response.read().decode("utf-8")
         return json.loads(content)
@@ -31,7 +32,7 @@ def get_whois_socket(target: str, server: str = "whois.iana.org") -> str:
             s.settimeout(5.0)
             s.connect((server, 43))
             s.sendall(f"{target}\r\n".encode("utf-8"))
-            
+
             # Read response
             response = []
             while True:
@@ -53,7 +54,7 @@ def lookup_registration(target: str) -> Dict[str, Any]:
     if "://" in target_clean:
         target_clean = target_clean.split("://", 1)[1]
     target_clean = target_clean.split("/", 1)[0].split(":", 1)[0]
-    
+
     is_ip = False
     try:
         socket.inet_aton(target_clean)
@@ -64,7 +65,7 @@ def lookup_registration(target: str) -> Dict[str, Any]:
             is_ip = True
         except socket.error:
             pass
-            
+
     result = {
         "type": "whois",
         "target": target_clean,
@@ -81,9 +82,9 @@ def lookup_registration(target: str) -> Dict[str, Any]:
         }
     }
 
-    
+
     start_time = time.perf_counter()
-    
+
     # 1. Attempt RDAP
     try:
         rdap_data = get_rdap_info(target_clean, is_ip)
@@ -92,7 +93,7 @@ def lookup_registration(target: str) -> Dict[str, Any]:
         result["success"] = True
         result["latency_ms"] = round(duration, 2)
         result["metadata"]["rdap_source"] = "RDAP API"
-        
+
         # Extract registrar / entity details
         if "entities" in rdap_data:
             registrars = []
@@ -106,7 +107,7 @@ def lookup_registration(target: str) -> Dict[str, Any]:
                                 registrars.append(entry[3])
             if registrars:
                 result["metadata"]["registrar"] = ", ".join(registrars)
-                
+
         # Extract creation date
         if "events" in rdap_data:
             for event in rdap_data["events"]:
@@ -114,15 +115,15 @@ def lookup_registration(target: str) -> Dict[str, Any]:
                     result["metadata"]["creation_date"] = event.get("eventDate")
                     break
         return result
-    except Exception as e:
+    except Exception:
         # Fall back to WHOIS socket query
         pass
-        
+
     # 2. Attempt legacy WHOIS
     try:
         whois_server = "whois.iana.org"
         raw_output = get_whois_socket(target_clean, whois_server)
-        
+
         # Parse output for referral whois server
         refer_match = None
         for line in raw_output.splitlines():
@@ -131,17 +132,17 @@ def lookup_registration(target: str) -> Dict[str, Any]:
                 if len(parts) > 1:
                     refer_match = parts[1].strip()
                     break
-                    
+
         if refer_match and refer_match != whois_server:
             raw_output = get_whois_socket(target_clean, refer_match)
-            
+
         duration = (time.perf_counter() - start_time) * 1000.0
         result["status"] = "SUCCESS"
         result["success"] = True
         result["latency_ms"] = round(duration, 2)
         result["metadata"]["rdap_source"] = "Legacy WHOIS"
         result["metadata"]["raw_whois"] = raw_output
-        
+
         # Parse registrar/creation info from raw text
         for line in raw_output.splitlines():
             line_lower = line.lower()
@@ -149,7 +150,7 @@ def lookup_registration(target: str) -> Dict[str, Any]:
                 result["metadata"]["registrar"] = line.split(":", 1)[1].strip()
             elif "creation date:" in line_lower or "created:" in line_lower:
                 result["metadata"]["creation_date"] = line.split(":", 1)[1].strip()
-                
+
         return result
     except Exception as e:
         duration = (time.perf_counter() - start_time) * 1000.0
