@@ -29,12 +29,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[dev]
 
-    - name: Lint with flake8
+    - name: Lint with ruff
       run: |
-        # Fail only on real errors (syntax errors, undefined names).
-        # Style-only issues are reported but don't fail the build.
-        flake8 netcheck --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 netcheck --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        # Fail on syntax errors, undefined names, and other pyflakes/pycodestyle errors.
+        # ruff is already installed via pip install .[dev] and configured in pyproject.toml.
+        ruff check netcheck
 
     - name: Run Tests
       run: |

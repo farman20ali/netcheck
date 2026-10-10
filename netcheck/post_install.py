@@ -14,7 +14,6 @@ from __future__ import annotations
 import os
 import sys
 
-
 _EXPORT_LINE = 'export PATH="$HOME/.local/bin:$PATH"'
 _MARKER = "# added by netcheckx installer"
 _RC_FILES = ["~/.bashrc", "~/.zshrc", "~/.profile"]

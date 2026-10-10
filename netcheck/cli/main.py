@@ -247,7 +247,7 @@ def main() -> None:
     # `pip install --user` and the shell `netcheck` command won't work even
     # though they are currently running us through `python -m netcheck` or a
     # full path.  Suppress the warning with NETCHECK_NO_PATH_WARN=1.
-    if sys.platform != "win32" and "NETCHECK_NO_PATH_WARN" not in os.environ:  # noqa: unreachable (Windows-only dev env)
+    if sys.platform != "win32" and "NETCHECK_NO_PATH_WARN" not in os.environ:  # Windows-only dev env: skipped on win32
         _local_bin = os.path.expanduser("~/.local/bin")
         _path_dirs = os.environ.get("PATH", "").split(":")
         if _local_bin not in _path_dirs:
