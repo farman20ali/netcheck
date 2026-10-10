@@ -5,6 +5,21 @@ All notable changes to netcheck will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-10-10
+
+### Fixed
+- **Repo rename completion** (`network_access_check` → `netcheck`): removed stray `netcheck` token causing a PowerShell syntax error in the Winget release step; updated GitHub Releases download URL to the new repo path.
+- **CI lint (`flake8: command not found`)**: `flake8` was not in `dev` dependencies; replaced both `flake8` commands in `ci.yml` with `ruff check netcheck` (already a dev dep, configured in `pyproject.toml`).
+- **`F824` unused `global` declaration**: removed `global _metrics_registry` from `_record_results_and_check_alerts` in `subcommands.py` — the variable is only read there; assignment lives in `_run_serve`.
+- **Invalid `# noqa` directive** in `cli/main.py`: replaced `# noqa: unreachable` (not a real rule code) with a plain comment.
+- **Unsorted import block** in `post_install.py`: fixed `__future__` import ordering (`ruff I001`).
+- **Python 3.8/3.9 `SyntaxError`** in `test_mtr.py` and `test_udp.py`: parenthesized `with (cm1, cm2 as x):` syntax requires Python 3.10+; rewritten as nested `with` statements compatible with all supported versions.
+- **Cache TTL overwrite race** (`netcheck/utils/cache.py`): `set()` now computes `expiry` inside the lock with a single `time.time()` call and skips the key being written during expired-key cleanup to prevent self-eviction.
+- **Flaky cache test** (`test_overwrite_resets_ttl`): replaced `time.sleep`-based assertions with `patch('netcheck.utils.cache.time')` for fully deterministic, jitter-immune timing; added two new edge-case tests.
+
+### Changed
+- CI lint step migrated from `flake8` to `ruff` (no functional change — same rule coverage).
+
 ## [2.4.0] - 2026-08-26
 
 ### Added
@@ -257,6 +272,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-OS support (Ubuntu, Debian, CentOS, Fedora, Arch, openSUSE)
 - Three installation methods (manual, DEB, Snap)
 
+[2.5.0]: https://github.com/farman20ali/netcheck/compare/v2.4.0...v2.5.0
+[2.4.0]: https://github.com/farman20ali/netcheck/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/farman20ali/netcheck/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/farman20ali/netcheck/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/farman20ali/netcheck/compare/v2.0.0...v2.1.0

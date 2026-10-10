@@ -1,12 +1,12 @@
 {
     "$schema": "https://raw.githubusercontent.com/lukesampson/scoop/master/schema.json",
-    "version": "2.4.0",
+    "version": "2.5.0",
     "description": "Comprehensive network connectivity checker (ping, TCP, UDP, HTTP, SSL, DNS, traceroute, MTR, port scan, WHOIS, Prometheus, alerting).",
     "homepage": "https://github.com/farman20ali/netcheck",
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/farman20ali/netcheck/releases/download/v2.4.0/netcheck-2.4.0-win-x64.zip",
+            "url": "https://github.com/farman20ali/netcheck/releases/download/v2.5.0/netcheck-2.5.0-win-x64.zip",
             "hash": "sha256:PLACEHOLDER_HASH_WIN64"
         }
     },
@@ -23,7 +23,7 @@
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://github.com/farman20ali/netcheck/releases/download/v2.4.0/netcheck-2.4.0-win-x64.zip"
+                "url": "https://github.com/farman20ali/netcheck/releases/download/v2.5.0/netcheck-2.5.0-win-x64.zip"
             }
         }
     }

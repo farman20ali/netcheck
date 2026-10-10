@@ -1,6 +1,6 @@
 # Maintainer: Farman Ali <alienhub.dev@gmail.com>
 pkgname=netcheck
-pkgver=2.4.0
+pkgver=2.5.0
 pkgrel=1
 pkgdesc="Lightweight network connectivity checker — TCP, DNS, HTTP, SSL, ping, traceroute, WHOIS"
 arch=('any')

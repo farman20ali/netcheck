@@ -1,10 +1,10 @@
 # Network Connectivity Checker (`netcheck`)
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey.svg)](#)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](#)
-[![Tests](https://img.shields.io/badge/tests-305%20passed-brightgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/tests-307%20passed-brightgreen.svg)](#)
 
 A premium, cross-platform, production-grade **Network Intelligence Engine & CLI** written in pure Python 3. Zero external dependencies. High-concurrency diagnostics, structured output (JSON/CSV/XML), watch/loop mode, shell completions, man page, and an integrated **Model Context Protocol (MCP) Server** for AI assistants.
 
@@ -76,7 +76,7 @@ sudo snap connect netcheck:network-observe   # enables ping & interfaces
 
 ### Option 3: Debian package (`.deb`)
 ```bash
-sudo dpkg -i netcheck_2.4.0_amd64.deb
+sudo dpkg -i netcheck_2.5.0_amd64.deb
 ```
 
 ### Option 4: Chocolatey (Windows)

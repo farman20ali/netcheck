@@ -1,5 +1,5 @@
 name: netcheck
-version: '2.4.0'
+version: '2.5.0'
 summary: Cross-platform network diagnostics engine (DNS, TCP, HTTP, ping, MCP)
 title: NetCheck - Network Connectivity Tester
 icon: snap/gui/icon.png

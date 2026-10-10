@@ -1,5 +1,5 @@
 PackageIdentifier: farman20ali.netcheck
-PackageVersion: 2.4.0
+PackageVersion: 2.5.0
 PackageLocale: en-US
 Publisher: Farman Ali
 PublisherUrl: https://github.com/farman20ali
@@ -24,7 +24,7 @@ Tags:
   - ssl
   - ping
   - devops
-ReleaseNotes: See https://github.com/farman20ali/netcheck/releases/tag/v2.4.0
-ReleaseNotesUrl: https://github.com/farman20ali/netcheck/releases/tag/v2.4.0
+ReleaseNotes: See https://github.com/farman20ali/netcheck/releases/tag/v2.5.0
+ReleaseNotesUrl: https://github.com/farman20ali/netcheck/releases/tag/v2.5.0
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

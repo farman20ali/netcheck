@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netcheckx"
-version = "2.4.0"
+version = "2.5.0"
 description = "Network connectivity checker with DNS, ping, HTTP, and SSL validation. (Published as netcheckx on PyPI to avoid naming conflict with legacy netcheck package)"
 readme = "README.md"
 requires-python = ">=3.8"
