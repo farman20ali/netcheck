@@ -33,7 +33,6 @@ def _get_alert_manager(flap_threshold: int = 2, cooldown: float = 300.0):
     return _alert_manager
 
 def _record_results_and_check_alerts(results: List[dict], check_type: str, args) -> None:
-    global _metrics_registry
     if _metrics_registry is not None:
         for r in results:
             target = r.get("target") or "unknown"
