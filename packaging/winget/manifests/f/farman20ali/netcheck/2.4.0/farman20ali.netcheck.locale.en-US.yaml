@@ -1,5 +1,7 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
 PackageIdentifier: farman20ali.netcheck
-PackageVersion: 2.5.0
+PackageVersion: 2.4.0
 PackageLocale: en-US
 Publisher: Farman Ali
 PublisherUrl: https://github.com/farman20ali
@@ -9,10 +11,11 @@ PackageName: NetCheck
 PackageUrl: https://github.com/farman20ali/netcheck
 License: GPL-3.0
 LicenseUrl: https://github.com/farman20ali/netcheck/blob/main/LICENSE
-ShortDescription: Lightweight network connectivity checker with cross-platform support
-Description: >-
-  NetCheck is a powerful CLI tool for testing network connectivity to multiple 
-  hosts and ports. Supports TCP, DNS, HTTP, SSL, ping, traceroute, port scanning, 
+Copyright: Copyright (C) 2025 Farman Ali
+ShortDescription: Lightweight network diagnostics and connectivity testing CLI tool
+Description: |-
+  NetCheck is a powerful CLI tool for testing network connectivity to multiple
+  hosts and ports. Supports TCP, DNS, HTTP, SSL, ping, traceroute, port scanning,
   WHOIS, and more. Outputs JSON, CSV, XML. Cross-platform: Windows, Linux, macOS.
 Moniker: netcheck
 Tags:
@@ -24,7 +27,8 @@ Tags:
   - ssl
   - ping
   - devops
-ReleaseNotes: See https://github.com/farman20ali/netcheck/releases/tag/v2.5.0
-ReleaseNotesUrl: https://github.com/farman20ali/netcheck/releases/tag/v2.5.0
+  - sysadmin
+  - traceroute
+ReleaseNotesUrl: https://github.com/farman20ali/netcheck/releases/tag/v2.4.0
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0
