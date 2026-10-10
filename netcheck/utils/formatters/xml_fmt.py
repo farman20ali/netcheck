@@ -198,10 +198,51 @@ def _fmt_tcp_batch(results: List[Dict[str, Any]]) -> str:
     return _to_xml_str(root)
 
 
+def _fmt_udp(res: Dict[str, Any]) -> str:
+    meta = res.get("metadata", {})
+    root = ET.Element("udp_check", date=_now(),
+                      target=str(res.get("target", "")),
+                      success=str(res.get("success", False)).lower())
+    ET.SubElement(root, "port").text = str(meta.get("port", ""))
+    ET.SubElement(root, "status").text = str(res.get("status", ""))
+    if res.get("latency_ms") is not None:
+        ET.SubElement(root, "latency_ms").text = str(res.get("latency_ms"))
+    if meta.get("service"):
+        ET.SubElement(root, "service").text = meta.get("service")
+    if res.get("error"):
+        ET.SubElement(root, "error").text = res.get("error")
+    return _to_xml_str(root)
+
+
+def _fmt_mtr(res: Dict[str, Any]) -> str:
+    meta = res.get("metadata", {})
+    root = ET.Element("mtr_report", date=_now(),
+                      target=str(res.get("target", "")),
+                      success=str(res.get("success", False)).lower())
+    if res.get("latency_ms") is not None:
+        ET.SubElement(root, "latency_ms").text = str(res.get("latency_ms"))
+    hops_elem = ET.SubElement(root, "hops")
+    for h in meta.get("hops", []):
+        ET.SubElement(hops_elem, "hop",
+                      index=str(h.get("hop", "")),
+                      ip=str(h.get("ip", "")),
+                      name=str(h.get("name", "")),
+                      loss_pct=str(h.get("loss_pct", "")),
+                      sent=str(h.get("sent", "")),
+                      recv=str(h.get("recv", "")),
+                      min_ms=str(h.get("min_ms", "")),
+                      avg_ms=str(h.get("avg_ms", "")),
+                      max_ms=str(h.get("max_ms", "")))
+    if res.get("error"):
+        ET.SubElement(root, "error").text = res.get("error")
+    return _to_xml_str(root)
+
+
 _SINGLE_DISPATCH = {
     "interfaces": _fmt_interfaces, "dns": _fmt_dns, "http": _fmt_http,
     "ssl": _fmt_ssl, "ping": _fmt_ping, "ports": _fmt_ports,
     "scan": _fmt_scan, "traceroute": _fmt_traceroute, "whois": _fmt_whois,
+    "udp": _fmt_udp, "mtr": _fmt_mtr,
 }
 
 

@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.5.0] - 2026-10-10
 
+### Added
+- **Graceful Ctrl+C shutdown & thread cancellation**: pressing `Ctrl+C` cleanly cancels pending `ThreadPoolExecutor` futures across batch TCP, port scanning, and interfaces checks, exiting cleanly with POSIX standard code 130 without traceback dumps or hanging sockets.
+- **Exit codes contract (`EXIT_INTERRUPT = 130`)**: added `EXIT_INTERRUPT = 130` (128 + SIGINT) in `netcheck/cli/exitcodes.py` to allow CI/CD pipelines to differentiate intentional cancellation from check failure.
+- **Formatter parity for UDP & MTR**: added dedicated `_fmt_udp` and `_fmt_mtr` handlers to JSON, CSV, and XML output engines, ensuring identical structured schema fidelity across all formats.
+- **SIGPIPE handling**: stdout pipes to utilities like `head` or `grep` now exit cleanly on pipe closure instead of raising `BrokenPipeError`.
+
 ### Fixed
+- **Traceback dumps on interrupt**: wrapped top-level CLI execution in guarded entrypoint to output clean cancellation message to stderr and suppress unhandled `KeyboardInterrupt` tracebacks.
+- **Batch targets exit code**: returns `EXIT_BAD_ARGS` (2) on empty target files or streams instead of generic check failure (`EXIT_FAIL`).
+- **Watch mode thread safety & performance**: protected `_watch_logs` with a threading lock to prevent race conditions during concurrent worker updates; replaced subprocess `os.system('clear'/'cls')` with in-memory ANSI screen clearing escape codes.
 - **Repo rename completion** (`network_access_check` → `netcheck`): removed stray `netcheck` token causing a PowerShell syntax error in the Winget release step; updated GitHub Releases download URL to the new repo path.
 - **CI lint (`flake8: command not found`)**: `flake8` was not in `dev` dependencies; replaced both `flake8` commands in `ci.yml` with `ruff check netcheck` (already a dev dep, configured in `pyproject.toml`).
 - **`F824` unused `global` declaration**: removed `global _metrics_registry` from `_record_results_and_check_alerts` in `subcommands.py` — the variable is only read there; assignment lives in `_run_serve`.

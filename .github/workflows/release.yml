@@ -440,7 +440,7 @@ jobs:
         if: env.WINGET_GITHUB_TOKEN != ''
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri https://github.com/microsoft/winget-create/releases/download/v1.6.3.0/wingetcreate.exe -OutFile wingetcreate.exe
+          Invoke-WebRequest -Uri https://github.com/microsoft/winget-create/releases/latest/download/wingetcreate.exe -OutFile wingetcreate.exe
           Move-Item wingetcreate.exe C:\Windows\System32\
 
       - name: Submit Winget Manifest

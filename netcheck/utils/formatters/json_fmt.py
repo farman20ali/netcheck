@@ -164,6 +164,32 @@ def _fmt_tcp_batch(results: List[Dict[str, Any]]) -> str:
     return json.dumps(data, indent=2)
 
 
+def _fmt_udp(res: Dict[str, Any]) -> str:
+    meta = res.get("metadata", {})
+    return json.dumps({
+        "check_date": _now(), "type": "udp",
+        "target": res.get("target"),
+        "success": res.get("success", False),
+        "status": res.get("status"),
+        "error": res.get("error"),
+        "latency_ms": res.get("latency_ms"),
+        **meta,
+    }, indent=2)
+
+
+def _fmt_mtr(res: Dict[str, Any]) -> str:
+    meta = res.get("metadata", {})
+    return json.dumps({
+        "check_date": _now(), "type": "mtr",
+        "target": res.get("target"),
+        "success": res.get("success", False),
+        "error": res.get("error"),
+        "latency_ms": res.get("latency_ms"),
+        "hops": meta.get("hops", []),
+        **{k: v for k, v in meta.items() if k != "hops"},
+    }, indent=2)
+
+
 _SINGLE_DISPATCH = {
     "interfaces": _fmt_interfaces,
     "dns": _fmt_dns,
@@ -174,6 +200,8 @@ _SINGLE_DISPATCH = {
     "scan": _fmt_scan,
     "traceroute": _fmt_traceroute,
     "whois": _fmt_whois,
+    "udp": _fmt_udp,
+    "mtr": _fmt_mtr,
 }
 
 

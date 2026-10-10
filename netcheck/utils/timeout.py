@@ -24,6 +24,9 @@ def run_with_timeout(timeout: float, func: Callable[..., T], *args: Any, **kwarg
     future = _timeout_executor.submit(func, *args, **kwargs)
     try:
         return future.result(timeout=timeout)
+    except KeyboardInterrupt:
+        future.cancel()
+        raise
     except TimeoutError:
         # Note: The background thread will continue to run until it completes,
         # but control is returned to the caller immediately.

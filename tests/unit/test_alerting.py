@@ -260,11 +260,12 @@ class TestAlertEvent:
 class TestAlertDispatcher:
     @pytest.fixture(autouse=True)
     def mock_keyring_env(self):
-        with patch("netcheck.utils.config.NetCheckConfig.get_slack_webhook", return_value=""), \
-             patch("netcheck.utils.config.NetCheckConfig.get_webhook_token", return_value=""), \
-             patch("netcheck.utils.config.NetCheckConfig.get_smtp_user", return_value=""), \
-             patch("netcheck.utils.config.NetCheckConfig.get_smtp_to", return_value=""):
-            yield
+        with patch("netcheck.utils.config.NetCheckConfig.get_slack_webhook", return_value=""):
+            with patch("netcheck.utils.config.NetCheckConfig.get_webhook_token", return_value=""):
+                with patch("netcheck.utils.config.NetCheckConfig.get_smtp_user", return_value=""):
+                    with patch("netcheck.utils.config.NetCheckConfig.get_smtp_to", return_value=""):
+                        with patch("netcheck.utils.alerting.send_desktop_notification", return_value=True):
+                            yield
 
     def _make_event(self) -> AlertEvent:
         return AlertEvent(

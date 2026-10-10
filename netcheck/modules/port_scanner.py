@@ -82,12 +82,17 @@ def scan_ports(host: str, ports: List[int] = None, timeout: float = 1.5, max_wor
     # Execute checks concurrently
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(scan_port_single, ip_to_scan, p, timeout): p for p in ports}
-        for future in as_completed(futures):
-            res = future.result()
-            if res["status"] == "OPEN":
-                open_ports.append(res)
-            else:
-                closed_ports.append(res)
+        try:
+            for future in as_completed(futures):
+                res = future.result()
+                if res["status"] == "OPEN":
+                    open_ports.append(res)
+                else:
+                    closed_ports.append(res)
+        except KeyboardInterrupt:
+            for f in futures:
+                f.cancel()
+            raise
 
     # Sort results by port number
     open_ports.sort(key=lambda x: x["port"])

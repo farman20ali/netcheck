@@ -187,6 +187,43 @@ def _fmt_tcp_batch(results: List[Dict[str, Any]]) -> str:
     return output.getvalue()
 
 
+def _fmt_udp(res: Dict[str, Any]) -> str:
+    meta = res.get("metadata", {})
+    output = io.StringIO()
+    w = _writer(output)
+    w.writerow(["Target", "Port", "Status", "Success", "Latency_MS", "Service", "Error"])
+    w.writerow([
+        res.get("target"),
+        meta.get("port", ""),
+        res.get("status", ""),
+        "SUCCESS" if res.get("success", False) else "FAILED",
+        res.get("latency_ms") if res.get("latency_ms") is not None else "N/A",
+        meta.get("service", ""),
+        res.get("error") or "",
+    ])
+    return output.getvalue()
+
+
+def _fmt_mtr(res: Dict[str, Any]) -> str:
+    meta = res.get("metadata", {})
+    output = io.StringIO()
+    w = _writer(output)
+    w.writerow(["Hop", "IP", "Name", "Loss_Pct", "Sent", "Recv", "Min_MS", "Avg_MS", "Max_MS"])
+    for h in meta.get("hops", []):
+        w.writerow([
+            h.get("hop", ""),
+            h.get("ip", ""),
+            h.get("name", ""),
+            h.get("loss_pct", ""),
+            h.get("sent", ""),
+            h.get("recv", ""),
+            h.get("min_ms", ""),
+            h.get("avg_ms", ""),
+            h.get("max_ms", ""),
+        ])
+    return output.getvalue()
+
+
 _SINGLE_DISPATCH = {
     "interfaces": _fmt_interfaces,
     "dns": _fmt_dns,
@@ -197,6 +234,8 @@ _SINGLE_DISPATCH = {
     "scan": _fmt_scan,
     "traceroute": _fmt_traceroute,
     "whois": _fmt_whois,
+    "udp": _fmt_udp,
+    "mtr": _fmt_mtr,
 }
 
 

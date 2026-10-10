@@ -29,8 +29,12 @@ def run_check_with_retry(
     if kwargs is None:
         kwargs = {}
 
+    last_result: Dict[str, Any] = {}
+
     def _run() -> Dict[str, Any]:
+        nonlocal last_result
         res = check_fn(*args, **kwargs)
+        last_result = res
         if not res.get("success", False):
             raise RuntimeError(res.get("error") or "Check returned unsuccessful status")
         return res
@@ -38,11 +42,15 @@ def run_check_with_retry(
     try:
         return retry_call(_run, retries=retries, delay=delay)
     except Exception:
-        # Re-run once to return the full failed result dict with metadata intact
+        # Return the last full result dict (with metadata) instead of re-running
+        if last_result:
+            return last_result
+        # Fallback: run once more to get a structured result
         try:
             return check_fn(*args, **kwargs)
         except Exception as inner_e:
             return {
+                "type": "tcp",
                 "target": str(args[0]) if args else "unknown",
                 "status": "FAILED",
                 "latency_ms": 0.0,
@@ -65,78 +73,95 @@ def execute_concurrent_checks(
 
     Returns a list of result dicts in completion order. Verbose mode prints
     real-time status lines to stderr (never stdout).
+
+    Handles KeyboardInterrupt gracefully: cancels pending futures, prints a
+    clean message, and re-raises so callers can set the appropriate exit code.
     """
     results: List[Dict[str, Any]] = []
 
-    with ThreadPoolExecutor(max_workers=max_jobs) as executor:
-        futures: Dict = {}
-        for host, port in targets:
-            try:
-                port_val = int(port)
-                fut = executor.submit(
-                    run_check_with_retry,
-                    check_tcp_connect,
-                    args=(host, port_val, timeout),
-                    retries=retries,
-                    delay=retry_delay,
-                )
-                futures[fut] = (host, port)
-            except ValueError:
-                res = {
-                    "type": "tcp",
-                    "target": f"{host}:{port}",
-                    "status": "FAILED",
-                    "latency_ms": 0.0,
-                    "success": False,
-                    "error": f"Invalid port number: {port}",
-                    "metadata": {"host": host, "port": port},
-                }
-                results.append(res)
-                if verbose:
-                    sys.stderr.write(f"✗ FAILED: {host}:{port} (Invalid port number)\n")
-                    sys.stderr.flush()
-
-        completed = 0
-        total = len(futures)
-
-        for fut in as_completed(futures):
-            host, port = futures[fut]
-            try:
-                res = fut.result()
-                results.append(res)
-            except Exception as exc:
-                res = {
-                    "target": f"{host}:{port}",
-                    "status": "FAILED",
-                    "latency_ms": 0.0,
-                    "success": False,
-                    "error": str(exc),
-                    "metadata": {"host": host, "port": port},
-                }
-                results.append(res)
-
-            completed += 1
-
-            if verbose:
-                use_color = sys.stdout.isatty()
-                c = get_colors(use_color)
-                if res.get("success", False):
-                    sys.stderr.write(
-                        f"{c['green']}✓ SUCCESS:{c['reset']} {host}:{port} "
-                        f"({res.get('latency_ms', '?')}ms)\n"
+    try:
+        with ThreadPoolExecutor(max_workers=max_jobs) as executor:
+            futures: Dict = {}
+            for host, port in targets:
+                try:
+                    port_val = int(port)
+                    fut = executor.submit(
+                        run_check_with_retry,
+                        check_tcp_connect,
+                        args=(host, port_val, timeout),
+                        retries=retries,
+                        delay=retry_delay,
                     )
-                else:
-                    sys.stderr.write(
-                        f"{c['red']}✗ FAILED:{c['reset']} {host}:{port} "
-                        f"({res.get('error', 'unknown error')})\n"
-                    )
-                sys.stderr.flush()
-            elif total > 5 and sys.stdout.isatty():
-                pct = int(completed / total * 100)
-                sys.stdout.write(f"\rProgress: {completed}/{total} completed ({pct}%)...")
-                sys.stdout.flush()
+                    futures[fut] = (host, port)
+                except ValueError:
+                    res = {
+                        "type": "tcp",
+                        "target": f"{host}:{port}",
+                        "status": "FAILED",
+                        "latency_ms": 0.0,
+                        "success": False,
+                        "error": f"Invalid port number: {port}",
+                        "metadata": {"host": host, "port": port},
+                    }
+                    results.append(res)
+                    if verbose:
+                        sys.stderr.write(f"✗ FAILED: {host}:{port} (Invalid port number)\n")
+                        sys.stderr.flush()
 
-        if total > 5 and sys.stdout.isatty() and not verbose:
-            print("")
+            completed = 0
+            total = len(futures)
+
+            try:
+                for fut in as_completed(futures):
+                    host, port = futures[fut]
+                    try:
+                        res = fut.result()
+                        results.append(res)
+                    except Exception as exc:
+                        res = {
+                            "type": "tcp",
+                            "target": f"{host}:{port}",
+                            "status": "FAILED",
+                            "latency_ms": 0.0,
+                            "success": False,
+                            "error": str(exc),
+                            "metadata": {"host": host, "port": port},
+                        }
+                        results.append(res)
+
+                    completed += 1
+
+                    if verbose:
+                        use_color = sys.stdout.isatty()
+                        c = get_colors(use_color)
+                        if res.get("success", False):
+                            sys.stderr.write(
+                                f"{c['green']}✓ SUCCESS:{c['reset']} {host}:{port} "
+                                f"({res.get('latency_ms', '?')}ms)\n"
+                            )
+                        else:
+                            sys.stderr.write(
+                                f"{c['red']}✗ FAILED:{c['reset']} {host}:{port} "
+                                f"({res.get('error', 'unknown error')})\n"
+                            )
+                        sys.stderr.flush()
+                    elif total > 5 and sys.stdout.isatty():
+                        pct = int(completed / total * 100)
+                        sys.stdout.write(f"\rProgress: {completed}/{total} completed ({pct}%)...")
+                        sys.stdout.flush()
+
+            except KeyboardInterrupt:
+                # Cancel all pending futures that haven't started yet
+                for f in futures:
+                    f.cancel()
+                raise  # re-raise to the caller
+
+            finally:
+                # Always clean up the progress bar line
+                if total > 5 and sys.stdout.isatty() and not verbose:
+                    print("")
+
+    except KeyboardInterrupt:
+        raise  # propagate to main() or batch caller
 
     return results

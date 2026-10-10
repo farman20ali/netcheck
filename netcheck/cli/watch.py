@@ -4,31 +4,32 @@ Watch mode loop for NetCheck CLI.
 Decoupled from all CLI state — accepts any callable that executes one
 check cycle and returns a bool (True = all passed).
 """
-import os
-import platform
 import sys
+import threading
 import time
 from datetime import datetime
 from typing import Callable
 
 
 def _clear_screen() -> None:
-    """Clear terminal screen cross-platform."""
-    if platform.system().lower() == "windows":
-        os.system("cls")
-    else:
-        os.system("clear")
+    """Clear terminal screen using ANSI escape codes (no subprocess)."""
+    if sys.stdout.isatty():
+        sys.stdout.write("\033[2J\033[H")
+        sys.stdout.flush()
 
 
-_watch_logs = []
+_watch_logs: list = []
+_watch_logs_lock = threading.Lock()
 
 
 def add_watch_log(msg: str) -> None:
-    """Add a log entry to the watch mode rolling history."""
+    """Add a log entry to the watch mode rolling history (thread-safe)."""
     now_str = datetime.now().strftime("%H:%M:%S")
-    _watch_logs.append(f"[{now_str}] {msg}")
-    if len(_watch_logs) > 8:
-        _watch_logs.pop(0)
+    entry = f"[{now_str}] {msg}"
+    with _watch_logs_lock:
+        _watch_logs.append(entry)
+        if len(_watch_logs) > 8:
+            _watch_logs.pop(0)
 
 
 def run_watch_loop(execute_fn: Callable[[], bool], interval: float) -> None:
@@ -61,15 +62,20 @@ def run_watch_loop(execute_fn: Callable[[], bool], interval: float) -> None:
             except SystemExit:
                 # Subcommands call sys.exit(); absorb it so the loop continues.
                 pass
+            except KeyboardInterrupt:
+                raise  # Let the outer handler catch this
             except Exception as exc:  # noqa: BLE001
                 err_msg = f"[watch] Error during check: {exc}"
                 print(err_msg, file=sys.stderr)
                 add_watch_log(err_msg)
 
-            if _watch_logs:
+            with _watch_logs_lock:
+                logs_snapshot = list(_watch_logs)
+
+            if logs_snapshot:
                 print("\n🔔 RECENT WATCH ALERTS & LOGS:")
                 print("─" * 60)
-                for log in _watch_logs:
+                for log in logs_snapshot:
                     print(log)
                 print("─" * 60)
 

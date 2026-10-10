@@ -61,6 +61,7 @@ def ping_host(raw_target: str, count: int = 4, timeout: float = 2.0) -> Dict[str
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            errors="replace",
             timeout=timeout * count + 2.0
         )
         duration_ms = (time.perf_counter() - start_time) * 1000.0
