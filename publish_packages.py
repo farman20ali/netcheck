@@ -13,12 +13,15 @@ Usage examples
   python3 publish_packages.py --snap                      # push to Snap Store (stable)
   python3 publish_packages.py --snap --channel edge       # push to edge/beta/candidate
   python3 publish_packages.py --chocolatey                # push nupkg to Chocolatey.org
+  python3 publish_packages.py --winget                    # submit/update package in WinGet
+  python3 publish_packages.py --winget --version 2.5.0    # specify version explicitly
 
 Environment variables (optional, avoids interactive prompts)
 ------------------------------------------------------------
   TWINE_USERNAME / TWINE_PASSWORD   — PyPI credentials (or __token__ / API key)
   SNAPCRAFT_STORE_CREDENTIALS       — Snapcraft exported credentials
   CHOCO_API_KEY                     — Chocolatey.org API key
+  WINGET_GITHUB_TOKEN / GH_TOKEN    — GitHub PAT for WinGet PR submission
 """
 
 import argparse
@@ -43,12 +46,17 @@ DIST_DIR  = REPO_ROOT / "dist"
 # ── Python executable (platform-aware) ───────────────────────────────────────
 PYTHON_CMD = "python" if platform.system().lower() == "windows" else "python3"
 
-# ── Paths ──────────────────────────────────────────────────────────────────────
-REPO_ROOT = Path(__file__).parent.resolve()
-DIST_DIR  = REPO_ROOT / "dist"
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def get_version() -> str:
+    """Return the current netcheck version string from __init__.py."""
+    init = REPO_ROOT / "netcheck" / "__init__.py"
+    m = re.search(r'__version__\s*=\s*[\'"]([^\'"]+)[\'"]', init.read_text(encoding="utf-8"))
+    if not m:
+        sys.exit("Error: cannot parse __version__ from netcheck/__init__.py")
+    return m.group(1)
+
 
 def _tool_ok(name: str) -> bool:
     """Return True if *name* is findable on PATH."""
@@ -81,10 +89,11 @@ def run_check() -> None:
     """Print availability of all publish-time tools."""
     print("\n─── Publish tool diagnostic ───\n")
     tools = {
-        "twine"      : "pip install twine",
-        "snapcraft"  : "sudo snap install snapcraft --classic",
-        "choco"      : "https://chocolatey.org/install  (Windows only)",
-        "gh"         : "https://cli.github.com  (optional, for GitHub Releases)",
+        "twine"       : "pip install twine",
+        "snapcraft"   : "sudo snap install snapcraft --classic",
+        "choco"       : "https://chocolatey.org/install  (Windows only)",
+        "wingetcreate": "winget install Microsoft.WingetCreate  (Windows only)",
+        "gh"          : "https://cli.github.com  (optional, for GitHub Releases)",
     }
     all_ok = True
     for tool, install_hint in tools.items():
@@ -290,6 +299,140 @@ def publish_github_release(tag: str) -> None:
     print(f"🔗  https://github.com/farman20ali/netcheck/releases/tag/{tag}")
 
 
+# ── --winget ──────────────────────────────────────────────────────────────────
+
+def publish_winget(
+    version: str | None = None,
+    urls: str | None = None,
+    submit: bool = True,
+    token: str | None = None,
+    yes: bool = False,
+) -> None:
+    """Submit / update package in Windows Package Manager via wingetcreate."""
+    print("\n─── Publishing to WinGet (Windows Package Manager) ───")
+
+    if not _tool_ok("wingetcreate"):
+        sys.exit(
+            "❌  wingetcreate not found.\n"
+            "  Install via winget: winget install Microsoft.WingetCreate\n"
+            "  Or download from: https://github.com/microsoft/winget-create/releases"
+        )
+
+    ver = version or get_version()
+    package_id = "farman20ali.netcheck"
+    setup_url = urls or f"https://github.com/farman20ali/netcheck/releases/download/v{ver}/netcheck-{ver}-setup.exe"
+    auth_token = token or os.environ.get("WINGET_GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+
+    # 1. Token Check and Guidance
+    if not auth_token:
+        print("\n" + "═" * 60)
+        print("⚠️   WINGET_GITHUB_TOKEN not found!")
+        print("═" * 60)
+        print("""To submit a manifest PR directly to microsoft/winget-pkgs, wingetcreate
+needs a GitHub Personal Access Token (PAT) with 'public_repo' permissions.
+
+How to get a token:
+  1. Open: https://github.com/settings/tokens/new
+  2. Note: "winget submission token"
+  3. Scope: Check 'public_repo'
+  4. Generate and copy your token (starts with ghp_...)
+  (Tip: If you have GitHub CLI authenticated, you can get it via: gh auth token)
+
+How to set your token:
+  [PowerShell - Current Session]:
+    $env:WINGET_GITHUB_TOKEN = "ghp_your_token_here"
+
+  [PowerShell - Permanent for User]:
+    [System.Environment]::SetEnvironmentVariable('WINGET_GITHUB_TOKEN', 'ghp_your_token_here', 'User')
+
+  [CMD - Current Session]:
+    set WINGET_GITHUB_TOKEN=ghp_your_token_here
+
+  [CLI Argument]:
+    python publish_packages.py --winget --winget-token "ghp_your_token_here"
+""")
+        print("═" * 60)
+
+        if sys.stdin.isatty() and not yes:
+            print("Choose an option:")
+            print("  [1] Enter token right now in prompt")
+            print("  [2] Continue without token (wingetcreate will use cached auth or browser prompt)")
+            print("  [3] Abort now (set token and rerun)")
+            try:
+                choice = input("Enter choice [1-3] (default 2): ").strip()
+            except KeyboardInterrupt:
+                sys.exit("\nAborted.")
+
+            if choice == "1":
+                try:
+                    entered = input("Paste your GitHub Token: ").strip()
+                    if entered:
+                        auth_token = entered
+                    else:
+                        print("No token entered. Continuing without token.")
+                except KeyboardInterrupt:
+                    sys.exit("\nAborted.")
+            elif choice == "3":
+                sys.exit("Aborted. Please set WINGET_GITHUB_TOKEN and run again.")
+
+    # 2. Pre-execution Review
+    token_display = "None (Interactive/Browser fallback)"
+    if auth_token:
+        if len(auth_token) > 8:
+            token_display = f"Configured ({auth_token[:4]}...{auth_token[-4:]})"
+        else:
+            token_display = "Configured"
+
+    print("\n" + "─" * 60)
+    print("WinGet Submission Review")
+    print("─" * 60)
+    print(f"  Package ID   : {package_id}")
+    print(f"  Version      : {ver}")
+    print(f"  Installer URL: {setup_url}")
+    print(f"  Submit Mode  : {'--submit (Fork and open PR)' if submit else 'Manifest Generation Only (no submit)'}")
+    print(f"  GitHub Token : {token_display}")
+    print("─" * 60)
+
+    # 3. Confirmation Prompt
+    if not yes:
+        try:
+            confirm = input(f"\nAre you sure you want to proceed with WinGet v{ver}? [y/N]: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            sys.exit("\nAborted.")
+
+        if confirm not in ("y", "yes"):
+            print("\n❌  Submission cancelled by user.")
+            print("💡  If the version was incorrect, specify: python publish_packages.py --winget --winget-version <version>")
+            return
+
+    # 4. Execute wingetcreate
+    cmd = ["wingetcreate", "update", package_id, "--version", ver, "--urls", setup_url]
+    if submit:
+        cmd.append("--submit")
+    if auth_token:
+        cmd.extend(["--token", auth_token])
+
+    sep = "─" * 60
+    print(f"\n{sep}\n▶ wingetcreate update → {package_id} v{ver}\n$ {' '.join(cmd)}\n{sep}")
+    result = subprocess.run(cmd, cwd=REPO_ROOT)
+    if result.returncode != 0:
+        print(f"\n❌  wingetcreate update failed (exit {result.returncode})")
+        print("\nℹ️   Common causes & solutions:")
+        print("  1. If this is the FIRST time publishing farman20ali.netcheck:")
+        print("     'wingetcreate update' only works after the package has been accepted and merged into microsoft/winget-pkgs.")
+        print("     For initial publication, submit the base manifest folder:")
+        print("       wingetcreate submit packaging/winget/manifests/f/farman20ali/netcheck/2.4.0 --token <token>")
+        print("     (See packaging/winget/README.md for initial submission details)")
+        print(f"  2. If the release installer is not accessible on GitHub Releases:")
+        print(f"     Verify that {setup_url} is live and downloadable.")
+        print("  3. Token permissions:")
+        print("     Ensure your GitHub Personal Access Token has the 'public_repo' scope.")
+        sys.exit(1)
+
+    print(f"\n✅  WinGet manifest submission complete for {package_id} v{ver}.")
+    print("🔗  Track pull requests at: https://github.com/microsoft/winget-pkgs/pulls")
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -304,10 +447,14 @@ def main() -> None:
             f"  {PYTHON_CMD} publish_packages.py --snap\n"
             f"  {PYTHON_CMD} publish_packages.py --snap --channel edge\n"
             f"  {PYTHON_CMD} publish_packages.py --chocolatey\n"
+            f"  {PYTHON_CMD} publish_packages.py --winget\n"
+            f"  {PYTHON_CMD} publish_packages.py --winget --version 2.5.0\n"
             f"  {PYTHON_CMD} publish_packages.py --github-release v2.1.0\n"
         )
     )
 
+    p.add_argument("-y", "--yes",        action="store_true",
+                   help="Skip interactive confirmation prompts and proceed automatically")
     p.add_argument("--check",            action="store_true",
                    help="Verify all publish tools are installed")
     p.add_argument("--pypi",             action="store_true",
@@ -323,6 +470,16 @@ def main() -> None:
     p.add_argument("--choco-checksum",                     help="Specify the SHA-256 checksum for the Chocolatey installer manually")
     p.add_argument("--choco-checksum-from-release", action="store_true", help="Download the setup installer from the GitHub release to calculate checksum")
     p.add_argument("--choco-checksum-file",                help="Read the SHA-256 checksum from a file (or calculate the checksum of that file)")
+    p.add_argument("--winget",           action="store_true",
+                   help="Submit / update package manifest on WinGet via wingetcreate")
+    p.add_argument("--winget-version",   metavar="VERSION",
+                   help="Version for WinGet update (defaults to current netcheck version)")
+    p.add_argument("--winget-url",       metavar="URL",
+                   help="Custom setup installer download URL for WinGet")
+    p.add_argument("--winget-token",     metavar="TOKEN",
+                   help="GitHub Personal Access Token for WinGet PR submission")
+    p.add_argument("--no-submit",        action="store_true",
+                   help="(With --winget) generate and validate manifest without submitting PR")
     p.add_argument("--github-release",   metavar="TAG",
                    help="Create a GitHub Release for TAG and attach all dist artefacts")
 
@@ -339,6 +496,14 @@ def main() -> None:
             checksum_val=args.choco_checksum,
             checksum_from_release=args.choco_checksum_from_release,
             checksum_file=args.choco_checksum_file
+        )
+    elif args.winget:
+        publish_winget(
+            version=args.winget_version,
+            urls=args.winget_url,
+            submit=not args.no_submit,
+            token=args.winget_token,
+            yes=args.yes,
         )
     elif args.github_release:
         publish_github_release(tag=args.github_release)

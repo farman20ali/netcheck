@@ -823,15 +823,6 @@ def collect_manifests() -> None:
                 shutil.copy2(src, dest_dir / f)
         print("✓ Collected AUR packaging files")
 
-    # Winget
-    winget_dir = REPO_ROOT / "packaging" / "winget" / "manifests"
-    if winget_dir.exists():
-        dest_dir = DIST_DIR / "winget"
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        for f in winget_dir.glob("*.yaml"):
-            shutil.copy2(f, dest_dir / f.name)
-        print("✓ Collected WinGet manifests")
-
 
 # ── --all ──────────────────────────────────────────────────────────────────────
 
@@ -901,9 +892,6 @@ def sync_version(new_version: str) -> None:
         ("netcheck/mcp/server.py",
          r'"version":\s*[\'"][^\'"]+[\'"]',
          f'"version": "{new_version}"'),
-        ("packaging/linux/netcheck.spec",
-         r'(?m)^Version:\s*\S+',
-         f'Version:        {new_version}'),
         ("packaging/windows/scoop/netcheck.json",
          r'"version":\s*[\'"][^\'"]+[\'"]',
          f'"version": "{new_version}"'),
@@ -916,21 +904,6 @@ def sync_version(new_version: str) -> None:
         ("packaging/aur/PKGBUILD",
          r'(?m)^pkgver=\S+',
          f'pkgver={new_version}'),
-        ("packaging/winget/manifests/farman20ali.netcheck.yaml",
-         r'(?m)^PackageVersion:\s*\S+',
-         f'PackageVersion: {new_version}'),
-        ("packaging/winget/manifests/farman20ali.netcheck.installer.yaml",
-         r'(?m)^PackageVersion:\s*\S+',
-         f'PackageVersion: {new_version}'),
-        ("packaging/winget/manifests/farman20ali.netcheck.installer.yaml",
-         r'download/v[^/]+/netcheck-[^/]+-setup\.exe',
-         f'download/v{new_version}/netcheck-{new_version}-setup.exe'),
-        ("packaging/winget/manifests/farman20ali.netcheck.locale.en-US.yaml",
-         r'(?m)^PackageVersion:\s*\S+',
-         f'PackageVersion: {new_version}'),
-        ("packaging/winget/manifests/farman20ali.netcheck.locale.en-US.yaml",
-         r'releases/tag/v\S+',
-         f'releases/tag/v{new_version}'),
     ]
 
     for rel, pattern, repl in _subs:
@@ -984,7 +957,7 @@ def main() -> None:
     p.add_argument("--choco-checksum-file",                help="Read the SHA-256 checksum from a file (or calculate the checksum of that file)")
     p.add_argument("--mac",          action="store_true",  help="Build macOS binary + PKG")
     p.add_argument("--vscode",       action="store_true",  help="Build VSCode extension (.vsix)")
-    p.add_argument("--manifests",    action="store_true",  help="Collect Homebrew/Scoop/AUR/Winget manifests to dist/")
+    p.add_argument("--manifests",    action="store_true",  help="Collect Homebrew/Scoop/AUR manifests to dist/")
     p.add_argument("--all",          action="store_true",  help="Build all for current OS")
     args = p.parse_args()
 
