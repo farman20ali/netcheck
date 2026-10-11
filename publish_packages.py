@@ -83,6 +83,91 @@ def _glob_newest(pattern: str, sub: str = "") -> Path | None:
     return matches[-1] if matches else None
 
 
+def _download_from_release(
+    version: str,
+    name_pattern: str,
+    dest_dir: Path,
+    label: str = "asset",
+) -> Path:
+    """Download a GitHub Release asset whose filename matches *name_pattern*.
+
+    *name_pattern* is a glob-style substring the asset filename must contain
+    (e.g. ".snap", ".whl", ".tar.gz").  The file is saved into *dest_dir* and
+    the Path to the downloaded file is returned.
+    """
+    import urllib.request, urllib.error
+
+    tag = f"v{version}"
+    api_url = f"https://api.github.com/repos/farman20ali/netcheck/releases/tags/{tag}"
+    print(f"  Fetching release metadata from GitHub for {tag} …")
+
+    try:
+        req = urllib.request.Request(
+            api_url,
+            headers={
+                "User-Agent": "netcheck-publish-script",
+                "Accept": "application/vnd.github+json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            import json as _json
+            data = _json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        sys.exit(
+            f"❌  GitHub API error {e.code}: {e.reason}\n"
+            f"    Ensure the release tag {tag} exists at:"
+            f" https://github.com/farman20ali/netcheck/releases/tag/{tag}"
+        )
+    except Exception as e:
+        sys.exit(f"❌  Failed to fetch release metadata: {e}")
+
+    assets = data.get("assets", [])
+    matches = [a for a in assets if name_pattern in a["name"]]
+    if not matches:
+        available = ", ".join(a["name"] for a in assets) or "(none)"
+        sys.exit(
+            f"❌  No release asset matching '{name_pattern}' found in release {tag}.\n"
+            f"    Available assets: {available}"
+        )
+    if len(matches) > 1:
+        # Prefer exact-version match if ambiguous
+        exact = [a for a in matches if version in a["name"]]
+        matches = exact if exact else matches
+
+    asset = matches[0]
+    download_url = asset["browser_download_url"]
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_file = dest_dir / asset["name"]
+
+    print(f"  Downloading {asset['name']} ({asset['size'] // 1024:,} KB) …")
+    print(f"    URL: {download_url}")
+
+    try:
+        req = urllib.request.Request(
+            download_url,
+            headers={"User-Agent": "netcheck-publish-script"},
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp, \
+             open(dest_file, "wb") as fh:
+            total = asset["size"]
+            downloaded = 0
+            while True:
+                chunk = resp.read(65536)
+                if not chunk:
+                    break
+                fh.write(chunk)
+                downloaded += len(chunk)
+                pct = int(downloaded * 100 / total) if total else 0
+                print(f"\r    Progress: {pct:3d}%  ({downloaded // 1024:,}/{total // 1024:,} KB)",
+                      end="", flush=True)
+        print()  # newline after progress
+    except Exception as e:
+        sys.exit(f"❌  Download failed: {e}")
+
+    print(f"  ✅  Downloaded {label}: {dest_file.name}")
+    return dest_file
+
+
 # ── --check ───────────────────────────────────────────────────────────────────
 
 def run_check() -> None:
@@ -112,22 +197,36 @@ def run_check() -> None:
 
 # ── --pypi ────────────────────────────────────────────────────────────────────
 
-def publish_pypi(test: bool = False) -> None:
-    """Upload wheel + sdist to PyPI (or TestPyPI when *test* is True)."""
-    print(f"\n─── Publishing to {'TestPyPI' if test else 'PyPI'} ───")
+def publish_pypi(test: bool = False, from_release: bool = False) -> None:
+    """Upload wheel + sdist to PyPI (or TestPyPI when *test* is True).
+
+    When *from_release* is True the wheel and sdist are downloaded directly
+    from the latest GitHub Release instead of being read from dist/.
+    """
+    store_label = "TestPyPI" if test else "PyPI"
+    print(f"\n─── Publishing to {store_label} ───")
 
     if not _tool_ok("twine"):
         sys.exit("❌  twine not found.\n  Install: pip install twine")
 
-    # Collect artefacts
-    artefacts = list(DIST_DIR.glob("netcheckx-*.whl")) + list(DIST_DIR.glob("netcheckx-*.tar.gz"))
-    if not artefacts:
-        sys.exit(
-            "❌  No wheel / sdist found in dist/.\n"
-            f"  Run first:  {PYTHON_CMD} build_packages.py --pypi"
-        )
+    if from_release:
+        print("  Source: GitHub Release (--from-release)")
+        ver = get_version()
+        pypi_dir = DIST_DIR / "pypi-from-release"
+        # Download both the wheel and the sdist
+        whl  = _download_from_release(ver, ".whl",    pypi_dir, label="wheel")
+        sdist = _download_from_release(ver, ".tar.gz", pypi_dir, label="sdist")
+        artefacts = [whl, sdist]
+    else:
+        artefacts = list(DIST_DIR.glob("netcheckx-*.whl")) + list(DIST_DIR.glob("netcheckx-*.tar.gz"))
+        if not artefacts:
+            sys.exit(
+                "❌  No wheel / sdist found in dist/.\n"
+                f"  Tip: build first with  {PYTHON_CMD} build_packages.py --pypi\n"
+                f"  Or use --from-release to pull the package from the GitHub Release."
+            )
 
-    print("  Artefacts to upload:")
+    print(f"\n  Artefacts to upload ({len(artefacts)}):")
     for a in sorted(artefacts):
         print(f"    {a.name}")
 
@@ -136,31 +235,43 @@ def publish_pypi(test: bool = False) -> None:
         cmd += ["--repository", "testpypi"]
     cmd += [str(a) for a in sorted(artefacts)]
 
-    _run(cmd, f"twine upload → {'TestPyPI' if test else 'PyPI'}")
+    _run(cmd, f"twine upload → {store_label}")
     store_url = "https://test.pypi.org/project/netcheckx/" if test else "https://pypi.org/project/netcheckx/"
     print(f"\n🔗  View at: {store_url}")
 
 
 # ── --snap ────────────────────────────────────────────────────────────────────
 
-def publish_snap(channel: str = "stable") -> None:
-    """Upload the newest .snap to the Snap Store and release to *channel*."""
+def publish_snap(channel: str = "stable", from_release: bool = False) -> None:
+    """Upload a .snap to the Snap Store and release to *channel*.
+
+    When *from_release* is True the .snap is downloaded directly from the
+    latest GitHub Release instead of being read from dist/snap/.
+    """
     print(f"\n─── Publishing to Snap Store (channel: {channel}) ───")
 
     if not _tool_ok("snapcraft"):
         sys.exit("❌  snapcraft not found.\n  Install: sudo snap install snapcraft --classic")
 
-    snap_file = _glob_newest("*.snap", sub="snap")
-    if snap_file is None:
-        # Also check root-level snaps (leftover from older builds)
-        snap_file = _glob_newest("netcheck_*.snap")
-    if snap_file is None:
-        sys.exit(
-            "❌  No .snap file found in dist/snap/ or repo root.\n"
-            f"  Run first:  {PYTHON_CMD} build_packages.py --snap"
-        )
+    if from_release:
+        print("  Source: GitHub Release (--from-release)")
+        ver = get_version()
+        snap_dir = DIST_DIR / "snap-from-release"
+        snap_file = _download_from_release(ver, ".snap", snap_dir, label="snap package")
+    else:
+        snap_file = _glob_newest("*.snap", sub="snap")
+        if snap_file is None:
+            # Also check root-level snaps (leftover from older builds)
+            snap_file = _glob_newest("netcheck_*.snap")
+        if snap_file is None:
+            sys.exit(
+                "❌  No .snap file found in dist/snap/ or repo root.\n"
+                f"  Tip: build first with  {PYTHON_CMD} build_packages.py --snap\n"
+                f"  Or use --from-release to pull the snap from the GitHub Release."
+            )
 
-    print(f"  Snap file: {snap_file.name}")
+    print(f"\n  Snap file  : {snap_file.name}")
+    print(f"  Channel    : {channel}")
 
     # Upload — snapcraft upload returns the revision number
     print(f"\n  Uploading {snap_file.name} …")
@@ -444,11 +555,13 @@ def main() -> None:
             f"  {PYTHON_CMD} publish_packages.py --check\n"
             f"  {PYTHON_CMD} publish_packages.py --pypi --test\n"
             f"  {PYTHON_CMD} publish_packages.py --pypi\n"
+            f"  {PYTHON_CMD} publish_packages.py --pypi --from-release\n"
             f"  {PYTHON_CMD} publish_packages.py --snap\n"
-            f"  {PYTHON_CMD} publish_packages.py --snap --channel edge\n"
+            f"  {PYTHON_CMD} publish_packages.py --snap --from-release\n"
+            f"  {PYTHON_CMD} publish_packages.py --snap --from-release --channel edge\n"
             f"  {PYTHON_CMD} publish_packages.py --chocolatey\n"
             f"  {PYTHON_CMD} publish_packages.py --winget\n"
-            f"  {PYTHON_CMD} publish_packages.py --winget --version 2.5.0\n"
+            f"  {PYTHON_CMD} publish_packages.py --winget --winget-version 2.5.0\n"
             f"  {PYTHON_CMD} publish_packages.py --github-release v2.1.0\n"
         )
     )
@@ -483,14 +596,18 @@ def main() -> None:
     p.add_argument("--github-release",   metavar="TAG",
                    help="Create a GitHub Release for TAG and attach all dist artefacts")
 
+    p.add_argument("--from-release",    action="store_true",
+                   help="(With --snap or --pypi) download the artifact from the GitHub Release "
+                        "instead of using a local dist/ file")
+
     args = p.parse_args()
 
     if args.check:
         run_check()
     elif args.pypi:
-        publish_pypi(test=args.test)
+        publish_pypi(test=args.test, from_release=args.from_release)
     elif args.snap:
-        publish_snap(channel=args.channel)
+        publish_snap(channel=args.channel, from_release=args.from_release)
     elif args.chocolatey:
         publish_chocolatey(
             checksum_val=args.choco_checksum,
