@@ -1,17 +1,17 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 
-PackageIdentifier: farman20ali.netcheck
+PackageIdentifier: AlienHub.NetCheck
 PackageVersion: 2.4.0
 PackageLocale: en-US
-Publisher: Farman Ali
+Publisher: Alien Hub
 PublisherUrl: https://github.com/farman20ali
 PublisherSupportUrl: https://github.com/farman20ali/netcheck/issues
-Author: Farman Ali
+Author: Alien Hub
 PackageName: NetCheck
 PackageUrl: https://github.com/farman20ali/netcheck
 License: GPL-3.0
 LicenseUrl: https://github.com/farman20ali/netcheck/blob/main/LICENSE
-Copyright: Copyright (C) 2025 Farman Ali
+Copyright: Copyright (C) 2025 Alien Hub
 ShortDescription: Lightweight network diagnostics and connectivity testing CLI tool
 Description: |-
   NetCheck is a powerful CLI tool for testing network connectivity to multiple

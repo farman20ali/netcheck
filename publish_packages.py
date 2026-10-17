@@ -430,7 +430,7 @@ def publish_winget(
         )
 
     ver = version or get_version()
-    package_id = "farman20ali.netcheck"
+    package_id = "AlienHub.NetCheck"
     setup_url = urls or f"https://github.com/farman20ali/netcheck/releases/download/v{ver}/netcheck-{ver}-setup.exe"
     auth_token = token or os.environ.get("WINGET_GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
 
@@ -529,10 +529,10 @@ How to set your token:
     if result.returncode != 0:
         print(f"\n❌  wingetcreate update failed (exit {result.returncode})")
         print("\nℹ️   Common causes & solutions:")
-        print("  1. If this is the FIRST time publishing farman20ali.netcheck:")
+        print("  1. If this is the FIRST time publishing AlienHub.NetCheck:")
         print("     'wingetcreate update' only works after the package has been accepted and merged into microsoft/winget-pkgs.")
         print("     For initial publication, submit the base manifest folder:")
-        print("       wingetcreate submit packaging/winget/manifests/f/farman20ali/netcheck/2.4.0 --token <token>")
+        print("       wingetcreate submit packaging/winget/manifests/a/AlienHub/NetCheck/2.4.0 --token <token>")
         print("     (See packaging/winget/README.md for initial submission details)")
         print(f"  2. If the release installer is not accessible on GitHub Releases:")
         print(f"     Verify that {setup_url} is live and downloadable.")

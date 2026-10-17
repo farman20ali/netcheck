@@ -450,7 +450,7 @@ jobs:
           $TAG_NAME = "${{ github.ref_name }}"
           $VERSION = $TAG_NAME.Substring(1)
           $URL = "https://github.com/farman20ali/netcheck/releases/download/$TAG_NAME/netcheck-$VERSION-setup.exe"
-          wingetcreate update farman20ali.netcheck --version $VERSION --urls $URL --submit --token $env:WINGET_GITHUB_TOKEN
+          wingetcreate update AlienHub.NetCheck --version $VERSION --urls $URL --submit --token $env:WINGET_GITHUB_TOKEN
 
       - name: Skip notice
         if: env.WINGET_GITHUB_TOKEN == ''

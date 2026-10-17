@@ -4,7 +4,9 @@
 
 ### Option 1 — winget (Recommended for Windows 10/11)
 ```powershell
-winget install farman20ali.netcheck
+winget install netcheck
+# Or explicitly:
+winget install AlienHub.NetCheck
 ```
 
 ### Option 2 — Chocolatey
@@ -39,7 +41,7 @@ scoop install netcheck
 
 | Method | Command |
 |---|---|
-| winget | `winget uninstall farman20ali.netcheck` |
+| winget | `winget uninstall AlienHub.NetCheck` |
 | Chocolatey | `choco uninstall netcheck` |
 | .exe installer | Control Panel → Add/Remove Programs → NetCheck |
 | pip | `pip uninstall netcheckx` |
