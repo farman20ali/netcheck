@@ -1,0 +1,4 @@
+skills/** text eol=lf
+scripts/*.py text eol=lf
+tests/unit/test_agent_skill.py text eol=lf
+tests/unit/test_package_skill.py text eol=lf
