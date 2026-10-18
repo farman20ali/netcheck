@@ -904,6 +904,11 @@ def sync_version(new_version: str) -> None:
         ("packaging/aur/PKGBUILD",
          r'(?m)^pkgver=\S+',
          f'pkgver={new_version}'),
+        # Agent skill: replace only the indented metadata.version line in the
+        # YAML frontmatter (two leading spaces, e.g. '  version: "2.5.0"').
+        ("skills/netcheck-diagnostics/SKILL.md",
+         r'(?m)^  version:\s*"[^"]+"',
+         f'  version: "{new_version}"'),
     ]
 
     for rel, pattern, repl in _subs:
@@ -911,10 +916,12 @@ def sync_version(new_version: str) -> None:
         if not path.exists():
             print(f"  ⚠️   {rel} not found – skipped")
             continue
-        original = path.read_text(encoding="utf-8")
+        with open(path, "r", encoding="utf-8", newline="") as f:
+            original = f.read()
         updated  = re.sub(pattern, repl, original)
         if updated != original:
-            path.write_text(updated, encoding="utf-8")
+            with open(path, "w", encoding="utf-8", newline="") as f:
+                f.write(updated)
             print(f"  ✓ {rel}")
         else:
             print(f"  – {rel}  (no change)")
@@ -922,9 +929,11 @@ def sync_version(new_version: str) -> None:
     # packaging/snap/snapcraft.yaml keeps a literal '{version}' placeholder
     snap_yaml = REPO_ROOT / "packaging" / "snap" / "snapcraft.yaml"
     if snap_yaml.exists():
-        txt = snap_yaml.read_text()
+        with open(snap_yaml, "r", encoding="utf-8", newline="") as f:
+            txt = f.read()
         txt = re.sub(r"version:\s*['\"][^'\"]+['\"]", f"version: '{new_version}'", txt)
-        snap_yaml.write_text(txt)
+        with open(snap_yaml, "w", encoding="utf-8", newline="") as f:
+            f.write(txt)
         print(f"  ✓ packaging/snap/snapcraft.yaml")
 
     print("Version synchronisation complete!\n")
