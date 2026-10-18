@@ -38,3 +38,7 @@ jobs:
     - name: Run Tests
       run: |
         pytest -v
+
+    - name: Skill zip dry-run (sha256 check)
+      run: |
+        python scripts/package_skill.py --list
