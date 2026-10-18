@@ -1,14 +1,15 @@
-.PHONY: help install uninstall test clean vscode-deps vscode-build vscode-dev vscode-publish vscode-clean
+.PHONY: help install uninstall test clean package-skill vscode-deps vscode-build vscode-dev vscode-publish vscode-clean
 
 # Default target
 help:
 	@echo "Network Connectivity Checker (netcheck) - Make Commands"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  make install     - Install netcheck system-wide (requires sudo)"
-	@echo "  make uninstall   - Uninstall netcheck (requires sudo)"
-	@echo "  make test        - Run unit tests using pytest"
-	@echo "  make clean       - Clean temporary results and build artifacts"
+	@echo "  make install        - Install netcheck system-wide (requires sudo)"
+	@echo "  make uninstall      - Uninstall netcheck (requires sudo)"
+	@echo "  make test           - Run unit tests using pytest"
+	@echo "  make package-skill  - Build the agent skill ZIP (dist/skill/) and print sha256"
+	@echo "  make clean          - Clean temporary results and build artifacts"
 	@echo ""
 	@echo "Quick usage:"
 	@echo "  sudo make install"
@@ -25,6 +26,9 @@ test:
 	else \
 		PYTHONPATH=. python3 -m pytest tests/ -v; \
 	fi
+
+package-skill:
+	python3 scripts/package_skill.py --list
 
 clean:
 	@echo "Cleaning temporary files and build caches..."
