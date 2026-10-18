@@ -153,7 +153,7 @@ def test_package_skill_readme_inside_skill_included(tmp_path: Path):
     skill_copy = tmp_path / "netcheck-diagnostics"
     shutil.copytree(CANONICAL_SKILL, skill_copy)
 
-    (skill_copy / "README.md").write_text("# inner readme\n", encoding="utf-8", newline="\n")
+    (skill_copy / "README.md").write_bytes(b"# inner readme\n")
 
     zip_path, _ = package_skill(
         skill_dir=skill_copy, out_dir=tmp_path / "dist", license_path=LICENSE_FILE
@@ -170,11 +170,7 @@ def test_package_skill_validation_fails_local_path(tmp_path: Path):
     shutil.copytree(CANONICAL_SKILL, skill_copy)
 
     skill_md = skill_copy / "SKILL.md"
-    skill_md.write_text(
-        skill_md.read_text(encoding="utf-8") + "\nTarget IP: 192.168.1.100\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    skill_md.write_bytes(skill_md.read_bytes() + b"\nTarget IP: 192.168.1.100\n")
 
     with pytest.raises(SkillValidationError, match="Local machine paths or private IPs detected"):
         package_skill(skill_dir=skill_copy, out_dir=tmp_path / "dist", license_path=LICENSE_FILE)
@@ -204,12 +200,10 @@ def test_package_skill_validation_fails_mismatched_name(tmp_path: Path):
     shutil.copytree(CANONICAL_SKILL, skill_copy)
 
     skill_md = skill_copy / "SKILL.md"
-    skill_md.write_text(
-        skill_md.read_text(encoding="utf-8").replace(
-            "name: netcheck-diagnostics", "name: wrong-skill-name"
-        ),
-        encoding="utf-8",
-        newline="\n",
+    skill_md.write_bytes(
+        skill_md.read_bytes().replace(
+            b"name: netcheck-diagnostics", b"name: wrong-skill-name"
+        )
     )
 
     with pytest.raises(SkillValidationError, match="does not match directory name"):
@@ -246,10 +240,8 @@ def test_package_skill_validation_fails_secret(tmp_path: Path):
     shutil.copytree(CANONICAL_SKILL, skill_copy)
 
     skill_md = skill_copy / "SKILL.md"
-    skill_md.write_text(
-        skill_md.read_text(encoding="utf-8") + "\n" + fake_line + "\n",
-        encoding="utf-8",
-        newline="\n",
+    skill_md.write_bytes(
+        skill_md.read_bytes() + b"\n" + fake_line.encode("utf-8") + b"\n"
     )
 
     with pytest.raises(SkillValidationError, match="Potential secret detected"):
