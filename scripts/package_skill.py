@@ -29,10 +29,10 @@ import datetime
 import hashlib
 import importlib.util
 import os
-from pathlib import Path
 import re
 import sys
 import zipfile
+from pathlib import Path
 
 # Ensure repository root is on sys.path for netcheck import.
 # REPO_ROOT is derived from __file__ so the script works regardless of cwd.

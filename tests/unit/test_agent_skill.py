@@ -6,14 +6,16 @@ STDLIB-ONLY: No PyYAML or external parsers.
 Design: pure helper functions take text strings; file-based tests call them.
 This decouples logic from the filesystem and allows testing helpers directly.
 """
-from pathlib import Path
+
+from __future__ import annotations
+
 import json
 import re
+from pathlib import Path
 
 import netcheck
 from netcheck.cli.subcommands import SUBCOMMANDS
 from netcheck.mcp.tools import TOOLS_LIST
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SKILL_DIR = REPO_ROOT / "skills" / "netcheck-diagnostics"
