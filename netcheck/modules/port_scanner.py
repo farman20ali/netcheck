@@ -14,9 +14,13 @@ COMMON_PORTS = [
     8000, 8080, 8443, 8888, 9000, 9092, 9200, 27017
 ]
 
-def scan_port_single(ip: str, port: int, timeout: float = 1.0) -> Dict[str, Any]:
+def scan_port_single(ip: str, port: int, timeout: float = 1.0, grab_banner_flag: bool = False) -> Dict[str, Any]:
     """
     Attempts connection to a single port and IP.
+    Classifies port status as:
+    - OPEN: 3-way handshake established.
+    - CLOSED: Host actively rejected connection (RST / ECONNREFUSED).
+    - FILTERED: Connection timed out or dropped by firewall.
     """
     start_time = time.perf_counter()
     try:
@@ -25,11 +29,47 @@ def scan_port_single(ip: str, port: int, timeout: float = 1.0) -> Dict[str, Any]
             sock.settimeout(timeout)
             sock.connect((ip, port))
         duration_ms = (time.perf_counter() - start_time) * 1000.0
-        return {
+        res = {
             "port": port,
             "status": "OPEN",
             "service": get_service_name(port),
             "latency_ms": round(duration_ms, 2)
+        }
+        if grab_banner_flag:
+            from netcheck.utils.banners import grab_banner
+            b_info = grab_banner(ip, port, timeout=min(timeout, 1.0))
+            if b_info.get("detected_service"):
+                res["service"] = b_info["detected_service"]
+            res["version"] = b_info.get("version")
+            res["banner"] = b_info.get("banner")
+        return res
+    except (socket.timeout, TimeoutError):
+        return {
+            "port": port,
+            "status": "FILTERED",
+            "service": get_service_name(port),
+            "latency_ms": None
+        }
+    except ConnectionRefusedError:
+        return {
+            "port": port,
+            "status": "CLOSED",
+            "service": get_service_name(port),
+            "latency_ms": None
+        }
+    except OSError as exc:
+        err = getattr(exc, "errno", None)
+        if err in (10060, 110) or "timed out" in str(exc).lower():
+            status = "FILTERED"
+        elif err in (10061, 111):
+            status = "CLOSED"
+        else:
+            status = "CLOSED"
+        return {
+            "port": port,
+            "status": status,
+            "service": get_service_name(port),
+            "latency_ms": None
         }
     except Exception:
         return {
@@ -39,7 +79,14 @@ def scan_port_single(ip: str, port: int, timeout: float = 1.0) -> Dict[str, Any]
             "latency_ms": None
         }
 
-def scan_ports(host: str, ports: List[int] = None, timeout: float = 1.5, max_workers: int = 20) -> Dict[str, Any]:
+def scan_ports(
+    host: str,
+    ports: List[int] = None,
+    timeout: float = 1.5,
+    max_workers: int = 20,
+    banner: bool = False,
+    delay: float = 0.0,
+) -> Dict[str, Any]:
     """
     Performs concurrent TCP scan on a target host for specified ports.
     """
@@ -56,10 +103,14 @@ def scan_ports(host: str, ports: List[int] = None, timeout: float = 1.5, max_wor
         "metadata": {
             "open_ports": [],
             "closed_ports": [],
+            "filtered_ports": [],
             "ips": []
         }
     }
 
+    if len(ports) > 1000:
+        result["error"] = f"Port scan exceeds safety limit of 1000 ports (requested {len(ports)})."
+        return result
 
     start_time = time.perf_counter()
 
@@ -79,16 +130,27 @@ def scan_ports(host: str, ports: List[int] = None, timeout: float = 1.5, max_wor
 
     open_ports = []
     closed_ports = []
+    filtered_ports = []
 
     # Execute checks concurrently
     try:
         with DaemonThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(scan_port_single, ip_to_scan, p, timeout): p for p in ports}
+            futures = {}
+            for p in ports:
+                if delay > 0.0:
+                    time.sleep(delay)
+                if banner:
+                    fut = executor.submit(scan_port_single, ip_to_scan, p, timeout, banner)
+                else:
+                    fut = executor.submit(scan_port_single, ip_to_scan, p, timeout)
+                futures[fut] = p
             try:
                 for future in as_completed(futures):
                     res = future.result()
                     if res["status"] == "OPEN":
                         open_ports.append(res)
+                    elif res["status"] == "FILTERED":
+                        filtered_ports.append(res)
                     else:
                         closed_ports.append(res)
             except KeyboardInterrupt:
@@ -106,6 +168,7 @@ def scan_ports(host: str, ports: List[int] = None, timeout: float = 1.5, max_wor
     # Sort results by port number
     open_ports.sort(key=lambda x: x["port"])
     closed_ports.sort(key=lambda x: x["port"])
+    filtered_ports.sort(key=lambda x: x["port"])
 
     duration = (time.perf_counter() - start_time) * 1000.0
 
@@ -114,5 +177,6 @@ def scan_ports(host: str, ports: List[int] = None, timeout: float = 1.5, max_wor
     result["latency_ms"] = round(duration, 2)
     result["metadata"]["open_ports"] = open_ports
     result["metadata"]["closed_ports"] = closed_ports
+    result["metadata"]["filtered_ports"] = filtered_ports
 
     return result

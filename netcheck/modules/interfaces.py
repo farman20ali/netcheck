@@ -31,6 +31,7 @@ def get_public_ip(timeout: float = 1.5) -> str:
     """Retrieves public IP address from public APIs concurrently."""
     import urllib.request
     from concurrent.futures import as_completed
+
     from netcheck.utils.threads import DaemonThreadPoolExecutor, cleanup_thread_queues
 
     services = ["https://api.ipify.org", "https://ifconfig.me", "https://icanhazip.com"]

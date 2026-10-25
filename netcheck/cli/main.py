@@ -244,7 +244,7 @@ def _main_impl() -> None:
             sys.argv[idx] = "--cert"
         elif arg in ("-tcp", "-udp", "-mtr", "-scan", "-whois",
                      "-http", "-ssl", "-traceroute", "-interfaces",
-                     "-ports", "-serve", "-config"):
+                     "-ports", "-serve", "-config", "-preset"):
             # Route bare -subcmd → subcmd (e.g. -tcp → tcp)
             sys.argv[idx] = arg[1:]
 
@@ -365,8 +365,6 @@ def _main_impl() -> None:
     # Lazy imports for modules used only in legacy mode
     from concurrent.futures import as_completed
 
-    from netcheck.utils.threads import DaemonThreadPoolExecutor, cleanup_thread_queues
-
     from netcheck.cli.executor import run_check_with_retry
     from netcheck.modules.dns import dns_lookup
     from netcheck.modules.http import check_http_status
@@ -375,6 +373,7 @@ def _main_impl() -> None:
     from netcheck.modules.ssl import check_ssl_certificate
     from netcheck.utils.formatters import format_csv, format_json, format_text, format_xml
     from netcheck.utils.range_expanders import expand_ip_range
+    from netcheck.utils.threads import DaemonThreadPoolExecutor, cleanup_thread_queues
 
     def _fmt(results, use_color=None) -> str:
         if fmt == "json":

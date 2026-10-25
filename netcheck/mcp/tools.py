@@ -240,6 +240,11 @@ def call_tool(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             hosts = expand_ip_range(host)
             ports = expand_port_range(port_str)
 
+            if len(hosts) * len(ports) > 256:
+                return _mcp_error_response(
+                    f"Target count exceeds safety limit of 256 checks ({len(hosts) * len(ports)} requested). Limit IP/port range."
+                )
+
             results = []
             for h in hosts:
                 for p in ports:
@@ -300,6 +305,10 @@ def call_tool(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             from netcheck.modules.port_scanner import scan_ports
             host = arguments.get("host")
             ports = arguments.get("ports", None)
+            if ports and len(ports) > 1000:
+                return _mcp_error_response(
+                    f"Port scan exceeds safety limit of 1000 ports ({len(ports)} requested)."
+                )
             timeout = float(arguments.get("timeout", 1.5))
             max_workers = int(arguments.get("max_workers", 20))
             res = scan_ports(host, ports=ports, timeout=timeout, max_workers=max_workers)
@@ -318,7 +327,7 @@ def call_tool(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         return _mcp_error_response(f"Internal error executing tool {name}: {str(e)}")
 
 def _mcp_success_response(data: Any) -> Dict[str, Any]:
-    return {
+    resp: Dict[str, Any] = {
         "content": [
             {
                 "type": "text",
@@ -326,6 +335,14 @@ def _mcp_success_response(data: Any) -> Dict[str, Any]:
             }
         ]
     }
+    # MCP standard: if check result indicates failure, set isError: True
+    if isinstance(data, dict):
+        if data.get("success") is False or data.get("status") == "FAILED":
+            resp["isError"] = True
+    elif isinstance(data, list):
+        if any(isinstance(x, dict) and (x.get("success") is False or x.get("status") == "FAILED") for x in data):
+            resp["isError"] = True
+    return resp
 
 def _mcp_error_response(message: str) -> Dict[str, Any]:
     return {

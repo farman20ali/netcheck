@@ -10,7 +10,7 @@ import sys
 from typing import List, Tuple
 
 from netcheck.cli.args import make_base_parser
-from netcheck.cli.executor import run_check_with_retry
+from netcheck.cli.executor import execute_concurrent_checks, run_check_with_retry
 from netcheck.cli.exitcodes import EXIT_BAD_ARGS, EXIT_ERROR, EXIT_FAIL, EXIT_INTERRUPT, EXIT_OK
 from netcheck.modules.dns import dns_lookup
 from netcheck.modules.http import check_http_status
@@ -160,11 +160,27 @@ def _build_scan_parser(base: argparse.ArgumentParser, env_jobs: int) -> None:
     base.add_argument("host")
     base.add_argument("-p", "--ports",
                       help="Comma-separated ports or range, e.g. 80-100")
+    base.add_argument("-F", "--fast", action="store_true",
+                      help="Fast scan: scan top 100 most common ports")
+    base.add_argument("--top-ports", type=int, default=None,
+                      help="Scan top N most common ports (e.g. 100, 1000)")
+    base.add_argument("-sV", "--banner", action="store_true",
+                      help="Probe open ports for service version identification (banner grabbing)")
+    base.add_argument("--delay", type=float, default=0.0,
+                      help="Delay in seconds between socket dispatches (default: 0.0)")
     base.add_argument("-j", "--jobs", type=int, default=env_jobs)
 
 
 def _build_whois_parser(base: argparse.ArgumentParser) -> None:
     base.add_argument("target")
+
+
+def _build_preset_parser(base: argparse.ArgumentParser, env_jobs: int) -> None:
+    base.add_argument("name", nargs="?", default=None, help="Preset name (e.g. aws, gcp, cloudflare, k8s)")
+    base.add_argument("-l", "--list", action="store_true", help="List available presets and their descriptions")
+    base.add_argument("-j", "--jobs", type=int, default=env_jobs)
+    base.add_argument("-o", "--output")
+    base.add_argument("--show", default="all", choices=["all", "success", "fail"])
 
 
 # ---------------------------------------------------------------------------
@@ -178,10 +194,14 @@ def _run_tcp(args, env_jobs: int) -> bool:
     targets = [(h, p) for h in hosts for p in ports]
 
     if not targets:
-        print("Error: No valid host or port specified", file=sys.stderr)
-        return False
+        fmt = "json" if getattr(args, "json", False) else getattr(args, "format", "text")
+        err_msg = f"Invalid host or port specified: host='{args.host}' port='{args.port}'"
+        if fmt == "json":
+            print(format_json([{"type": "tcp", "target": f"{args.host}:{args.port}", "status": "FAILED", "latency_ms": None, "success": False, "error": err_msg}]))
+        else:
+            print(f"Error: {err_msg}", file=sys.stderr)
+        sys.exit(EXIT_BAD_ARGS)
 
-    from netcheck.cli.executor import execute_concurrent_checks
     results = execute_concurrent_checks(
         targets, args.timeout, getattr(args, "jobs", env_jobs),
         args.retry, args.retry_delay, verbose=args.verbose,
@@ -306,7 +326,13 @@ def _run_scan(args) -> bool:
     fmt = "json" if args.json else args.format
     from netcheck.modules.port_scanner import scan_ports
     port_list = None
-    if args.ports:
+    if getattr(args, "fast", False):
+        from netcheck.utils.services import get_top_ports
+        port_list = get_top_ports(100)
+    elif getattr(args, "top_ports", None):
+        from netcheck.utils.services import get_top_ports
+        port_list = get_top_ports(args.top_ports)
+    elif args.ports:
         try:
             if "-" in args.ports:
                 start_p, end_p = map(int, args.ports.split("-"))
@@ -316,8 +342,17 @@ def _run_scan(args) -> bool:
         except ValueError:
             print("Error: Invalid ports format. Use e.g. 80,443 or 80-100", file=sys.stderr)
             sys.exit(EXIT_BAD_ARGS)
-    res = scan_ports(args.host, ports=port_list, timeout=args.timeout,
-                     max_workers=getattr(args, "jobs", 20))
+        if len(port_list) > 1000:
+            print(f"Error: Port scan exceeds safety limit of 1000 ports (requested {len(port_list)}). Specify a smaller range.", file=sys.stderr)
+            sys.exit(EXIT_BAD_ARGS)
+    res = scan_ports(
+        args.host,
+        ports=port_list,
+        timeout=args.timeout,
+        max_workers=getattr(args, "jobs", 20),
+        banner=getattr(args, "banner", False),
+        delay=getattr(args, "delay", 0.0),
+    )
     print(_fmt_output([res], fmt, verbose=args.verbose, use_color=use_color))
     _record_results_and_check_alerts([res], "scan", args)
     return res["success"]
@@ -497,6 +532,62 @@ def _run_config(sub_args: List[str]) -> None:
         sys.exit(EXIT_BAD_ARGS)
 
 
+def _run_preset(args, env_jobs: int) -> bool:
+    from netcheck.data.presets import get_preset, list_presets
+    use_color = None if not args.no_color else False
+    fmt = "json" if args.json else args.format
+
+    if getattr(args, "list", False) or not args.name:
+        presets = list_presets()
+        if fmt == "json":
+            print(format_json([{"preset": k, "description": v} for k, v in presets.items()]))
+        elif fmt == "csv":
+            print("preset,description")
+            for k, v in presets.items():
+                print(f"{k},{v}")
+        else:
+            print("Available Presets:")
+            for k, v in presets.items():
+                print(f"  {k:<14} {v}")
+        return True
+
+    targets = get_preset(args.name)
+    if targets is None:
+        print(f"Error: Unknown preset '{args.name}'. Use 'netcheck preset --list' to see available presets.", file=sys.stderr)
+        sys.exit(EXIT_BAD_ARGS)
+
+    results = execute_concurrent_checks(
+        targets, args.timeout, getattr(args, "jobs", env_jobs),
+        args.retry, args.retry_delay, verbose=args.verbose,
+    )
+
+    show_filter = getattr(args, "show", "all")
+    if show_filter == "success":
+        display = [r for r in results if r["success"]]
+    elif show_filter == "fail":
+        display = [r for r in results if not r["success"]]
+    else:
+        display = results
+
+    if display:
+        print(_fmt_output(display, fmt, verbose=args.verbose, use_color=use_color))
+    else:
+        label = "successful" if show_filter == "success" else "failed"
+        print(f"No {label} results to display.")
+
+    output_file = getattr(args, "output", None)
+    if output_file:
+        try:
+            with open(output_file, "w") as fh:
+                fh.write(_fmt_output(display, fmt, verbose=args.verbose, use_color=False))
+            print(f"Results saved to: {output_file} ({len(display)} items)")
+        except Exception as exc:
+            print(f"Error saving results: {exc}", file=sys.stderr)
+
+    _record_results_and_check_alerts(results, "preset", args)
+    return all(r["success"] for r in results)
+
+
 # ---------------------------------------------------------------------------
 # Main dispatcher
 # ---------------------------------------------------------------------------
@@ -504,7 +595,7 @@ def _run_config(sub_args: List[str]) -> None:
 SUBCOMMANDS = frozenset({
     "tcp", "dns", "http", "ssl", "ping",
     "interfaces", "ports", "traceroute", "scan", "whois", "mcp", "config", "serve",
-    "udp", "mtr",
+    "udp", "mtr", "preset",
 })
 
 
@@ -564,6 +655,8 @@ def handle_subcommands(
         base.add_argument("host")
         base.add_argument("-c", "--count", type=int, default=3)
         base.add_argument("-m", "--max-hops", type=int, default=30)
+    elif subcommand == "preset":
+        _build_preset_parser(base, env_jobs)
     else:
         base.print_help()
         sys.exit(EXIT_BAD_ARGS)
@@ -585,6 +678,7 @@ def handle_subcommands(
         "serve":      lambda: _run_serve(args, env_jobs),
         "udp":        lambda: _run_udp(args),
         "mtr":        lambda: _run_mtr(args),
+        "preset":     lambda: _run_preset(args, env_jobs),
     }
     execute_fn = _dispatch[subcommand]
 
