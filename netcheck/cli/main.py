@@ -191,6 +191,8 @@ def run_quick_test(
     try:
         results = execute_concurrent_checks(targets, timeout, max_jobs, retries, retry_delay, verbose=verbose)
     except KeyboardInterrupt:
+        from netcheck.utils.threads import cleanup_thread_queues
+        cleanup_thread_queues()
         sys.stderr.write("\nInterrupted.\n")
         sys.stderr.flush()
         if exit_on_complete:
@@ -361,7 +363,9 @@ def _main_impl() -> None:
     verbose = args.verbose
 
     # Lazy imports for modules used only in legacy mode
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from concurrent.futures import as_completed
+
+    from netcheck.utils.threads import DaemonThreadPoolExecutor, cleanup_thread_queues
 
     from netcheck.cli.executor import run_check_with_retry
     from netcheck.modules.dns import dns_lookup
@@ -400,7 +404,7 @@ def _main_impl() -> None:
         else:
             results = []
             try:
-                with ThreadPoolExecutor(max_workers=args.jobs) as executor:
+                with DaemonThreadPoolExecutor(max_workers=args.jobs) as executor:
                     futures = {executor.submit(ping_host, h, 4, timeout): h for h in hosts}
                     for future in as_completed(futures):
                         try:
@@ -411,6 +415,13 @@ def _main_impl() -> None:
                                             "latency_ms": 0.0, "success": False,
                                             "error": str(exc), "metadata": {}})
             except KeyboardInterrupt:
+                for f in futures:
+                    f.cancel()
+                try:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                except TypeError:
+                    executor.shutdown(wait=False)
+                cleanup_thread_queues()
                 print("\nInterrupted.", file=sys.stderr)
                 sys.exit(EXIT_INTERRUPT)
             results.sort(key=lambda r: r.get("target", ""))
@@ -492,6 +503,8 @@ def main() -> None:
     try:
         _main_impl()
     except KeyboardInterrupt:
+        from netcheck.utils.threads import cleanup_thread_queues
+        cleanup_thread_queues()
         sys.stderr.write("\nInterrupted.\n")
         sys.stderr.flush()
         sys.exit(EXIT_INTERRUPT)

@@ -32,3 +32,12 @@ class TestExecutor:
         results = execute_concurrent_checks(targets, timeout=1.0, max_jobs=2, retries=1, retry_delay=0.001)
         assert len(results) == 2
         assert all(r["success"] for r in results)
+
+    @patch("netcheck.cli.executor.check_tcp_connect")
+    def test_execute_concurrent_checks_keyboard_interrupt(self, mock_tcp):
+        import time
+        mock_tcp.side_effect = lambda *args, **kwargs: time.sleep(1.0)
+        targets = [("10.0.0.1", 80), ("10.0.0.2", 80)]
+        with patch("netcheck.cli.executor.as_completed", side_effect=KeyboardInterrupt):
+            with pytest.raises(KeyboardInterrupt):
+                execute_concurrent_checks(targets, timeout=1.0, max_jobs=2, retries=1, retry_delay=0.001)

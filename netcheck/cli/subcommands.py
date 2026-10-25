@@ -596,6 +596,8 @@ def handle_subcommands(
             success = execute_fn()
             sys.exit(EXIT_OK if success else EXIT_FAIL)
         except KeyboardInterrupt:
+            from netcheck.utils.threads import cleanup_thread_queues
+            cleanup_thread_queues()
             sys.stderr.write("\nInterrupted.\n")
             sys.stderr.flush()
             sys.exit(EXIT_INTERRUPT)

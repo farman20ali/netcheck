@@ -1,11 +1,13 @@
 import atexit
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from concurrent.futures import TimeoutError
 from typing import Any, Callable, TypeVar
+
+from netcheck.utils.threads import DaemonThreadPoolExecutor
 
 T = TypeVar('T')
 
-# Global ThreadPoolExecutor for executing operations within timeout boundaries
-_timeout_executor = ThreadPoolExecutor(max_workers=200, thread_name_prefix="timeout_runner")
+# Global DaemonThreadPoolExecutor for executing operations within timeout boundaries
+_timeout_executor = DaemonThreadPoolExecutor(max_workers=200, thread_name_prefix="timeout_runner")
 
 # Register cleanup on exit
 def _cleanup_executor():

@@ -139,6 +139,8 @@ def run_batch_targets(
     try:
         results = execute_concurrent_checks(expanded, timeout, max_jobs, retries, retry_delay, verbose=verbose)
     except KeyboardInterrupt:
+        from netcheck.utils.threads import cleanup_thread_queues
+        cleanup_thread_queues()
         sys.stderr.write("\nInterrupted.\n")
         sys.stderr.flush()
         sys.exit(EXIT_INTERRUPT)

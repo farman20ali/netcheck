@@ -1,10 +1,11 @@
 import socket
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from typing import Any, Dict, List
 
 from netcheck.modules.dns import dns_lookup
 from netcheck.utils.services import get_service_name
+from netcheck.utils.threads import DaemonThreadPoolExecutor, cleanup_thread_queues
 
 # Curated list of 50 common ports to scan by default
 COMMON_PORTS = [
@@ -80,19 +81,27 @@ def scan_ports(host: str, ports: List[int] = None, timeout: float = 1.5, max_wor
     closed_ports = []
 
     # Execute checks concurrently
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(scan_port_single, ip_to_scan, p, timeout): p for p in ports}
-        try:
-            for future in as_completed(futures):
-                res = future.result()
-                if res["status"] == "OPEN":
-                    open_ports.append(res)
-                else:
-                    closed_ports.append(res)
-        except KeyboardInterrupt:
-            for f in futures:
-                f.cancel()
-            raise
+    try:
+        with DaemonThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(scan_port_single, ip_to_scan, p, timeout): p for p in ports}
+            try:
+                for future in as_completed(futures):
+                    res = future.result()
+                    if res["status"] == "OPEN":
+                        open_ports.append(res)
+                    else:
+                        closed_ports.append(res)
+            except KeyboardInterrupt:
+                for f in futures:
+                    f.cancel()
+                try:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                except TypeError:
+                    executor.shutdown(wait=False)
+                cleanup_thread_queues()
+                raise
+    except KeyboardInterrupt:
+        raise
 
     # Sort results by port number
     open_ports.sort(key=lambda x: x["port"])

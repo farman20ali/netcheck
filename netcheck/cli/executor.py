@@ -5,12 +5,13 @@ This module is pure: it takes targets, runs them concurrently, and returns resul
 No printing, no sys.exit — all I/O lives in the caller (main.py / batch.py).
 """
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from netcheck.modules.tcp import check_tcp_connect
 from netcheck.utils.formatters import get_colors
 from netcheck.utils.retry import retry_call
+from netcheck.utils.threads import DaemonThreadPoolExecutor, cleanup_thread_queues
 
 
 def run_check_with_retry(
@@ -80,7 +81,7 @@ def execute_concurrent_checks(
     results: List[Dict[str, Any]] = []
 
     try:
-        with ThreadPoolExecutor(max_workers=max_jobs) as executor:
+        with DaemonThreadPoolExecutor(max_workers=max_jobs) as executor:
             futures: Dict = {}
             for host, port in targets:
                 try:
@@ -154,6 +155,11 @@ def execute_concurrent_checks(
                 # Cancel all pending futures that haven't started yet
                 for f in futures:
                     f.cancel()
+                try:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                except TypeError:
+                    executor.shutdown(wait=False)
+                cleanup_thread_queues()
                 raise  # re-raise to the caller
 
             finally:

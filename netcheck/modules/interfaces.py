@@ -30,7 +30,8 @@ def get_active_local_ip() -> str:
 def get_public_ip(timeout: float = 1.5) -> str:
     """Retrieves public IP address from public APIs concurrently."""
     import urllib.request
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from concurrent.futures import as_completed
+    from netcheck.utils.threads import DaemonThreadPoolExecutor, cleanup_thread_queues
 
     services = ["https://api.ipify.org", "https://ifconfig.me", "https://icanhazip.com"]
 
@@ -45,19 +46,27 @@ def get_public_ip(timeout: float = 1.5) -> str:
             pass
         return None
 
-    with ThreadPoolExecutor(max_workers=len(services)) as executor:
-        futures = {executor.submit(fetch_ip, url): url for url in services}
-        try:
-            for fut in as_completed(futures):
-                res = fut.result()
-                if res:
-                    for f in futures:
-                        f.cancel()
-                    return res
-        except KeyboardInterrupt:
-            for f in futures:
-                f.cancel()
-            raise
+    try:
+        with DaemonThreadPoolExecutor(max_workers=len(services)) as executor:
+            futures = {executor.submit(fetch_ip, url): url for url in services}
+            try:
+                for fut in as_completed(futures):
+                    res = fut.result()
+                    if res:
+                        for f in futures:
+                            f.cancel()
+                        return res
+            except KeyboardInterrupt:
+                for f in futures:
+                    f.cancel()
+                try:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                except TypeError:
+                    executor.shutdown(wait=False)
+                cleanup_thread_queues()
+                raise
+    except KeyboardInterrupt:
+        raise
 
     return "Unknown"
 
