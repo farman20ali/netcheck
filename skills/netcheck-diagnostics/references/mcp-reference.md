@@ -1,6 +1,6 @@
 # NetCheck MCP Tool Reference
 
-Details the 11 registered MCP tools, their schemas, and live-captured payloads.
+Details the 13 registered MCP tools, their schemas, and live-captured payloads.
 
 > **Note on captured outputs:** All payloads were captured live on Windows in a local loopback
 > environment. Timestamps appear as `"<timestamp>"`, port numbers are real integers,
@@ -16,7 +16,7 @@ NetCheck runs a zero-dependency JSON-RPC 2.0 stdio MCP server (`protocolVersion:
 
 ### Tool-Name Prefixes
 Some clients add a prefix to tool names, for example `mcp__<server>__<tool>` or `<server>_<tool>`.
-Always match any tool whose name ends with one of the 11 base names (tool names themselves contain underscores).
+Always match any tool whose name ends with one of the 13 base names (tool names themselves contain underscores).
 
 ### Result Structure
 Every successful tool execution returns:
@@ -38,12 +38,7 @@ The fields `success`, `status`, and `error` are **verified present** for the fiv
 For the other six tools, parse the JSON and use those fields only if present --
 do not assume their existence without consulting the captured payloads below.
 
-### Unsupported in MCP
-`udp` and `mtr` are CLI-only.
-
----
-
-## 2. All Registered MCP Tools (11 Tools)
+## 2. All Registered MCP Tools (13 Tools)
 
 Registered MCP tools:
 
@@ -60,6 +55,8 @@ Registered MCP tools:
 | `traceroute` | Network hop trace | `host` | `max_hops` (30), `timeout` (2.0) |
 | `scan_ports` | Concurrent TCP port scan | `host` | `ports` (int[]), `timeout` (1.5), `max_workers` (20) |
 | `whois_lookup` | RDAP/WHOIS registrar lookup | `target` | -- |
+| `check_udp` | UDP probe check | `host`, `port` | `timeout` (3.0) |
+| `run_mtr` | MTR-style hop-by-hop latency and packet-loss | `host` | `count` (3), `max_hops` (30), `timeout` (2.0) |
 
 ---
 

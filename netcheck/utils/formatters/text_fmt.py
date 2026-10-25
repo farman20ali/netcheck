@@ -111,7 +111,52 @@ def _fmt_ports(res: Dict[str, Any], c: dict) -> str:
 def _fmt_dns(res: Dict[str, Any], c: dict) -> str:
     meta = res.get("metadata", {})
     target = res.get("target", "")
+    query_type = meta.get("query_type")
     lines = []
+
+    if query_type == "propagation":
+        lines.append(f"DNS Propagation Check for: {target}")
+        lines.append("━" * 60)
+        resolvers = meta.get("resolvers", [])
+        if resolvers:
+            lines.append(f"  {'RESOLVER':<14} {'RESOLVER IP':<16} {'STATUS':<10} {'LATENCY':<10} {'RESOLVED IPs'}")
+            lines.append(f"  {'-'*14} {'-'*16} {'-'*10} {'-'*10} {'-'*20}")
+            for r in resolvers:
+                name = r.get("resolver", "Unknown")
+                rip = r.get("resolver_ip", "")
+                success = r.get("success", False)
+                lat = f"{r.get('latency_ms')}ms" if r.get("latency_ms") is not None else "N/A"
+                status_icon = f"{c['green']}✅ OK{c['reset']}" if success else f"{c['red']}❌ FAIL{c['reset']}"
+                ips_str = ", ".join(r.get("ips", [])) if r.get("ips") else (r.get("error") or "None")
+                lines.append(f"  {name:<14} {rip:<16} {pad_right(status_icon, 10)} {lat:<10} {ips_str}")
+            lines.append(f"  {'-'*14} {'-'*16} {'-'*10} {'-'*10} {'-'*20}")
+        consistent = meta.get("consistent")
+        if consistent is True:
+            lines.append(f"  Consistency: {c['green']}All resolvers returned matching records{c['reset']}")
+        elif consistent is False:
+            lines.append(f"  Consistency: {c['yellow']}⚠️  Resolvers returned inconsistent records (propagation in progress){c['reset']}")
+        lines.append("━" * 60)
+        return "\n".join(lines)
+
+    if query_type == "PTR":
+        lines.append(f"Reverse DNS (PTR) Lookup for: {target}")
+        lines.append("━" * 40)
+        success = res.get("success", False)
+        hostname = meta.get("hostname")
+        latency = res.get("latency_ms")
+        status_icon = f"{c['green']}✅ SUCCESS{c['reset']}" if success else f"{c['red']}❌ FAILED{c['reset']}"
+        lines.append(f"Status:   {status_icon}")
+        lines.append(f"IP:       {meta.get('ip', target)}")
+        if hostname:
+            lines.append(f"Hostname: {hostname}")
+        if latency is not None:
+            lines.append(f"Latency:  {latency}ms")
+        if res.get("error"):
+            lines.append(f"Error:    {res['error']}")
+        lines.append("━" * 40)
+        return "\n".join(lines)
+
+    # Standard forward DNS lookup
     lines.append(f"DNS Lookup for: {target}")
     lines.append("━" * 40)
     lines.append(f"Hostname: {meta.get('resolved_host')}")
@@ -194,6 +239,21 @@ def _fmt_http(res: Dict[str, Any], c: dict, verbose: bool) -> str:
     if redirect_url:
         redir = redirect_url if len(redirect_url) <= 27 else redirect_url[:24] + "..."
         lines.append(f"│ Redirected To: {pad_right(redir, 27)} │")
+    dns_ms = meta.get("dns_ms")
+    connect_ms = meta.get("connect_ms")
+    tls_ms = meta.get("tls_ms")
+    ttfb_ms = meta.get("ttfb_ms")
+    if any(x is not None for x in (dns_ms, connect_ms, tls_ms, ttfb_ms)):
+        lines.append("├─────────────────────────────────────────────┤")
+        lines.append("│ Timing Waterfall:                           │")
+        if dns_ms is not None:
+            lines.append(f"│   DNS Lookup:    {pad_right(f'{dns_ms}ms', 26)} │")
+        if connect_ms is not None:
+            lines.append(f"│   TCP Connect:   {pad_right(f'{connect_ms}ms', 26)} │")
+        if tls_ms is not None:
+            lines.append(f"│   TLS Handshake: {pad_right(f'{tls_ms}ms', 26)} │")
+        if ttfb_ms is not None:
+            lines.append(f"│   TTFB:          {pad_right(f'{ttfb_ms}ms', 26)} │")
     lines.append("└─────────────────────────────────────────────┘")
     lines.append("")
 
@@ -571,6 +631,42 @@ def _fmt_bulk(results: List[Dict[str, Any]], c: dict) -> str:
     return "\n".join(lines)
 
 
+def _fmt_discover(res: Dict[str, Any], c: dict) -> str:
+    meta = res.get("metadata", {})
+    target = res.get("target", "")
+    success = res.get("success", False)
+    total = meta.get("total_hosts", 0)
+    live_count = meta.get("live_hosts", 0)
+    hosts = meta.get("hosts", [])
+    scan_time = meta.get("scan_time_ms") or res.get("latency_ms")
+    lines = []
+    lines.append(f"Host Discovery Sweep for: {target}")
+    lines.append("━" * 55)
+    if not success:
+        err = res.get("error", "Unknown error")
+        lines.append(f"{c['red']}❌ FAILED: {err}{c['reset']}")
+        lines.append("━" * 55)
+        return "\n".join(lines)
+
+    lines.append(f"Scanned {total} hosts in {scan_time}ms — Found {live_count} live hosts:")
+    lines.append("")
+    if hosts:
+        lines.append(f"  {'IP ADDRESS':<18} {'STATUS':<8} {'METHOD':<10} {'LATENCY':<10} {'HOSTNAME'}")
+        lines.append(f"  {'-'*18} {'-'*8} {'-'*10} {'-'*10} {'-'*20}")
+        for h in hosts:
+            ip = h.get("ip", "")
+            method = h.get("method") or "unknown"
+            lat = f"{h.get('latency_ms')}ms" if h.get("latency_ms") is not None else "N/A"
+            host_name = h.get("hostname") or ""
+            status_str = f"{c['green']}UP{c['reset']}" if h.get("status") == "UP" else f"{c['red']}DOWN{c['reset']}"
+            lines.append(f"  {ip:<18} {pad_right(status_str, 8)} {method:<10} {lat:<10} {host_name}")
+    else:
+        lines.append("  No live hosts found.")
+    lines.append("")
+    lines.append("━" * 55)
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -588,6 +684,7 @@ _SINGLE_DISPATCH = {
     "whois":      lambda res, c, v: _fmt_whois(res, c),
     "udp":        lambda res, c, v: _fmt_udp(res, c),
     "mtr":        lambda res, c, v: _fmt_mtr(res, c),
+    "discover":   lambda res, c, v: _fmt_discover(res, c),
 }
 
 

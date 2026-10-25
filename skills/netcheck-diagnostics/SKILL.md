@@ -48,12 +48,12 @@ Before running any check, verify NetCheck is reachable:
 - **Bound Slow Commands:** Always bound potentially slow operations -- pass `-m 15` for `traceroute`, use `-t` to set appropriate timeouts, and verify flags from `--help` before running.
 
 ### A. MCP Mode (Model Context Protocol)
-- Some clients add a prefix to tool names, for example `mcp__<server>__<tool>` or `<server>_<tool>`. Match any tool whose name ends with one of the 11 base names (tool names themselves contain underscores):
-  - `check_tcp_connectivity`, `dns_lookup`, `check_http_status`, `check_ssl_certificate`, `ping_host`, `get_network_interfaces`, `get_listening_ports`, `get_public_ip`, `traceroute`, `scan_ports`, `whois_lookup`.
+- Some clients add a prefix to tool names, for example `mcp__<server>__<tool>` or `<server>_<tool>`. Match any tool whose name ends with one of the 13 base names (tool names themselves contain underscores):
+  - `check_tcp_connectivity`, `dns_lookup`, `check_http_status`, `check_ssl_certificate`, `ping_host`, `get_network_interfaces`, `get_listening_ports`, `get_public_ip`, `traceroute`, `scan_ports`, `whois_lookup`, `check_udp`, `run_mtr`.
 - **CRITICAL:** A successful MCP call (a JSON-RPC result without `isError`) only means the tool *ran*. It does **not** mean the network check passed. Parse `content[0].text` as JSON and inspect result fields.
-- For the five tools captured in the reference (`check_tcp_connectivity`, `dns_lookup`, `ping_host`, `get_network_interfaces`, and `check_http_status`), the fields `success`, `status`, and `error` are verified present. For the other six tools, parse the JSON and use those fields only if they are present -- do not assume their existence.
+- For the five tools captured in the reference (`check_tcp_connectivity`, `dns_lookup`, `ping_host`, `get_network_interfaces`, and `check_http_status`), the fields `success`, `status`, and `error` are verified present. For the other tools, parse the JSON and use those fields only if they are present -- do not assume their existence.
 - **Empty-array result:** If `check_tcp_connectivity` returns `[]`, no check ran. The input was invalid or empty (non-numeric port, port outside 1-65535, or empty host). Report as invalid input, not a connection result.
-- `udp` and `mtr` are **not** available in MCP; they are CLI-only, and UDP silence is inherently ambiguous.
+- UDP probes (`check_udp`) return OPEN_OR_FILTERED or CLOSED; UDP silence is inherently ambiguous.
 
 ### B. CLI Mode (Terminal / Shell)
 - Always pass `-f json` (or `--json`) for structured output:

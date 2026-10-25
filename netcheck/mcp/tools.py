@@ -221,6 +221,58 @@ TOOLS_LIST = [
             },
             "required": ["target"]
         }
+    },
+    {
+        "name": "check_udp",
+        "description": "Sends a UDP probe to a host:port and interprets the result. Returns OPEN_OR_FILTERED (no ICMP error within timeout) or CLOSED (ICMP port-unreachable received). Useful for DNS, NTP, SNMP, and other UDP services.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "type": "string",
+                    "description": "Target hostname or IP address."
+                },
+                "port": {
+                    "type": "integer",
+                    "description": "UDP port number to probe."
+                },
+                "timeout": {
+                    "type": "number",
+                    "description": "Probe timeout in seconds (default: 3.0).",
+                    "default": 3.0
+                }
+            },
+            "required": ["host", "port"]
+        }
+    },
+    {
+        "name": "run_mtr",
+        "description": "Runs an MTR-style combined traceroute + ping to measure per-hop latency and packet loss. Returns each hop with min/avg/max RTT and loss percentage.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "type": "string",
+                    "description": "Target hostname or IP address."
+                },
+                "count": {
+                    "type": "integer",
+                    "description": "Number of probes per hop (default: 3).",
+                    "default": 3
+                },
+                "max_hops": {
+                    "type": "integer",
+                    "description": "Maximum number of hops to trace (default: 30).",
+                    "default": 30
+                },
+                "timeout": {
+                    "type": "number",
+                    "description": "Per-hop timeout in seconds (default: 2.0).",
+                    "default": 2.0
+                }
+            },
+            "required": ["host"]
+        }
     }
 ]
 
@@ -318,6 +370,23 @@ def call_tool(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             from netcheck.modules.whois import lookup_registration
             target = arguments.get("target")
             res = lookup_registration(target)
+            return _mcp_success_response(res)
+
+        elif name == "check_udp":
+            from netcheck.modules.udp import check_udp
+            host = arguments.get("host")
+            port = int(arguments.get("port"))
+            timeout = float(arguments.get("timeout", 3.0))
+            res = check_udp(host, port, timeout)
+            return _mcp_success_response(res)
+
+        elif name == "run_mtr":
+            from netcheck.modules.mtr import mtr
+            host = arguments.get("host")
+            count = int(arguments.get("count", 3))
+            max_hops = int(arguments.get("max_hops", 30))
+            timeout = float(arguments.get("timeout", 2.0))
+            res = mtr(host, count=count, max_hops=max_hops, timeout=timeout)
             return _mcp_success_response(res)
 
         else:

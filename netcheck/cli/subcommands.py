@@ -125,7 +125,11 @@ def _build_tcp_parser(base: argparse.ArgumentParser, env_jobs: int) -> None:
 
 
 def _build_dns_parser(base: argparse.ArgumentParser) -> None:
-    base.add_argument("host")
+    base.add_argument("host", nargs="?", default=None, help="Hostname to resolve (omit with --propagate)")
+    base.add_argument("--reverse", "-r", action="store_true",
+                      help="Perform reverse DNS (PTR) lookup for an IP address")
+    base.add_argument("--propagate", "--prop", action="store_true",
+                      help="Check DNS propagation across Google, Cloudflare, Quad9, and OpenDNS")
 
 
 def _build_http_parser(base: argparse.ArgumentParser) -> None:
@@ -181,6 +185,12 @@ def _build_preset_parser(base: argparse.ArgumentParser, env_jobs: int) -> None:
     base.add_argument("-j", "--jobs", type=int, default=env_jobs)
     base.add_argument("-o", "--output")
     base.add_argument("--show", default="all", choices=["all", "success", "fail"])
+
+
+def _build_discover_parser(base: argparse.ArgumentParser, env_jobs: int) -> None:
+    base.add_argument("target", help="Target CIDR (e.g. 192.168.1.0/24) or range (192.168.1.1-20)")
+    base.add_argument("-j", "--jobs", type=int, default=min(env_jobs * 5, 50),
+                      help="Concurrent probe workers (default: 50)")
 
 
 # ---------------------------------------------------------------------------
@@ -240,7 +250,37 @@ def _run_tcp(args, env_jobs: int) -> bool:
 def _run_dns(args) -> bool:
     use_color = None if not args.no_color else False
     fmt = "json" if args.json else args.format
-    res = run_check_with_retry(dns_lookup, (args.host, args.timeout),
+
+    host = getattr(args, "host", None) or ""
+
+    if getattr(args, "propagate", False):
+        # DNS propagation mode
+        if not host:
+            print("Error: hostname required for --propagate", file=sys.stderr)
+            sys.exit(EXIT_BAD_ARGS)
+        from netcheck.modules.dns import dns_propagation
+        res = dns_propagation(host, timeout=args.timeout)
+        print(_fmt_output([res], fmt, verbose=args.verbose, use_color=use_color))
+        _record_results_and_check_alerts([res], "dns", args)
+        return res["success"]
+
+    if getattr(args, "reverse", False):
+        # Reverse DNS (PTR) mode
+        if not host:
+            print("Error: IP address required for --reverse", file=sys.stderr)
+            sys.exit(EXIT_BAD_ARGS)
+        from netcheck.modules.dns import reverse_dns
+        res = run_check_with_retry(reverse_dns, (host, args.timeout),
+                                   retries=args.retry, delay=args.retry_delay)
+        print(_fmt_output([res], fmt, verbose=args.verbose, use_color=use_color))
+        _record_results_and_check_alerts([res], "dns", args)
+        return res["success"]
+
+    # Standard forward DNS lookup
+    if not host:
+        print("Error: hostname required", file=sys.stderr)
+        sys.exit(EXIT_BAD_ARGS)
+    res = run_check_with_retry(dns_lookup, (host, args.timeout),
                                retries=args.retry, delay=args.retry_delay)
     print(_fmt_output([res], fmt, verbose=args.verbose, use_color=use_color))
     _record_results_and_check_alerts([res], "dns", args)
@@ -588,6 +628,27 @@ def _run_preset(args, env_jobs: int) -> bool:
     return all(r["success"] for r in results)
 
 
+def _run_discover(args) -> bool:
+    use_color = None if not args.no_color else False
+    fmt = "json" if args.json else args.format
+    from netcheck.modules.discover import discover_hosts
+    jobs = getattr(args, "jobs", 50)
+    res = discover_hosts(args.target, timeout=args.timeout, max_workers=jobs)
+    print(_fmt_output([res], fmt, verbose=args.verbose, use_color=use_color))
+    _record_results_and_check_alerts([res], "discover", args)
+    return res["success"]
+
+
+def _run_dns_propagation(args) -> bool:
+    use_color = None if not args.no_color else False
+    fmt = "json" if args.json else args.format
+    from netcheck.modules.dns import dns_propagation
+    res = dns_propagation(args.host, timeout=args.timeout)
+    print(_fmt_output([res], fmt, verbose=args.verbose, use_color=use_color))
+    _record_results_and_check_alerts([res], "dns", args)
+    return res["success"]
+
+
 # ---------------------------------------------------------------------------
 # Main dispatcher
 # ---------------------------------------------------------------------------
@@ -595,7 +656,7 @@ def _run_preset(args, env_jobs: int) -> bool:
 SUBCOMMANDS = frozenset({
     "tcp", "dns", "http", "ssl", "ping",
     "interfaces", "ports", "traceroute", "scan", "whois", "mcp", "config", "serve",
-    "udp", "mtr", "preset",
+    "udp", "mtr", "preset", "discover", "dns-propagation",
 })
 
 
@@ -657,6 +718,10 @@ def handle_subcommands(
         base.add_argument("-m", "--max-hops", type=int, default=30)
     elif subcommand == "preset":
         _build_preset_parser(base, env_jobs)
+    elif subcommand == "discover":
+        _build_discover_parser(base, env_jobs)
+    elif subcommand == "dns-propagation":
+        base.add_argument("host", help="Domain name to check propagation for")
     else:
         base.print_help()
         sys.exit(EXIT_BAD_ARGS)
@@ -665,20 +730,22 @@ def handle_subcommands(
 
     # Map subcommand name → execute_fn
     _dispatch = {
-        "tcp":        lambda: _run_tcp(args, env_jobs),
-        "dns":        lambda: _run_dns(args),
-        "http":       lambda: _run_http(args),
-        "ssl":        lambda: _run_ssl(args),
-        "ping":       lambda: _run_ping(args),
-        "interfaces": lambda: _run_interfaces(args),
-        "ports":      lambda: _run_ports(args),
-        "traceroute": lambda: _run_traceroute(args),
-        "scan":       lambda: _run_scan(args),
-        "whois":      lambda: _run_whois(args),
-        "serve":      lambda: _run_serve(args, env_jobs),
-        "udp":        lambda: _run_udp(args),
-        "mtr":        lambda: _run_mtr(args),
-        "preset":     lambda: _run_preset(args, env_jobs),
+        "tcp":             lambda: _run_tcp(args, env_jobs),
+        "dns":             lambda: _run_dns(args),
+        "dns-propagation": lambda: _run_dns_propagation(args),
+        "http":            lambda: _run_http(args),
+        "ssl":             lambda: _run_ssl(args),
+        "ping":            lambda: _run_ping(args),
+        "interfaces":      lambda: _run_interfaces(args),
+        "ports":           lambda: _run_ports(args),
+        "traceroute":      lambda: _run_traceroute(args),
+        "scan":            lambda: _run_scan(args),
+        "whois":           lambda: _run_whois(args),
+        "serve":           lambda: _run_serve(args, env_jobs),
+        "udp":             lambda: _run_udp(args),
+        "mtr":             lambda: _run_mtr(args),
+        "preset":          lambda: _run_preset(args, env_jobs),
+        "discover":        lambda: _run_discover(args),
     }
     execute_fn = _dispatch[subcommand]
 

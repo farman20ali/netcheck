@@ -566,11 +566,11 @@ class TestAgentSkillParity:
             f"In doc not code: {doc_names - code_names}; in code not doc: {code_names - doc_names}"
         )
 
-    def test_udp_mtr_not_mcp_tools(self):
+    def test_udp_mtr_mcp_tools(self):
         content = MCP_REF_MD.read_text(encoding="utf-8")
         doc_names = set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|", content, re.MULTILINE))
-        for bad in ("udp", "mtr", "check_udp", "check_mtr"):
-            assert bad not in doc_names
+        for tool in ("check_udp", "run_mtr"):
+            assert tool in doc_names
 
     def test_cli_subcommands_in_dispatcher(self):
         known = set(SUBCOMMANDS)

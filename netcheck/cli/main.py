@@ -73,10 +73,13 @@ SUBCOMMANDS (v{__version__}):
       --show <filter>             Filter output: all, success, fail (default: all)
       -j, --jobs <n>              Parallel connections (default: 10)
       -o, --output <file>         Save results to file
-
     dns <host>                  Perform DNS lookup and show nameservers
+      -r, --reverse               Reverse DNS (PTR) lookup for an IP address
+      --propagate                 Check DNS propagation across Google, Cloudflare, Quad9, OpenDNS
 
-    http <url>                  Validate HTTP response and response time
+    dns-propagation <host>      Check DNS propagation across public resolvers
+
+    http <url>                  Validate HTTP response and timing waterfall (DNS, TCP, TLS, TTFB)
       -X, --method <METHOD>       HTTP method: GET, HEAD, POST, PUT, DELETE, PATCH (default: GET)
       -H, --header <key:value>    Add request header (repeatable)
       --auth <user:pass>          HTTP Basic auth credentials
@@ -89,6 +92,9 @@ SUBCOMMANDS (v{__version__}):
     udp <host> <port>           UDP probe check
 
     mtr <host>                  MTR-style hop-by-hop latency analysis
+
+    discover <target>           Subnet host discovery sweep (ICMP + TCP 22/80/443 fallback)
+      -j, --jobs <n>              Parallel probe workers (default: 50)
 
     interfaces                  List local network interfaces
       --all                       Include inactive/down interfaces
@@ -142,8 +148,8 @@ EXIT CODES:
 
 INPUT:
     input_file                  File containing IP:port pairs (one per line)
-                               If not specified, reads from stdin
-                               Use --csv flag for CSV format files
+                                If not specified, reads from stdin
+                                Use --csv flag for CSV format files
 
 EXAMPLES:
     # Quick TCP check (multiple formats)
@@ -156,6 +162,8 @@ EXAMPLES:
     {cmd_name} tcp google.com 443
     {cmd_name} tcp 10.0.0.1-20 22           # IP range
     {cmd_name} dns github.com
+    {cmd_name} dns --reverse 8.8.8.8
+    {cmd_name} dns --propagate example.com
     {cmd_name} http https://example.com
     {cmd_name} http https://api.example.com -X POST -H "Authorization: Bearer token"
     {cmd_name} ssl github.com
@@ -164,6 +172,9 @@ EXAMPLES:
     {cmd_name} traceroute google.com
     {cmd_name} whois google.com
     {cmd_name} mtr 8.8.8.8
+    {cmd_name} udp 8.8.8.8 53
+    {cmd_name} discover 192.168.1.0/24
+    {cmd_name} discover 10.0.0.1-50 -j 30
 
     # Port scanning
     {cmd_name} scan 192.168.1.1            # default top-1000 ports
