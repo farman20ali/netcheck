@@ -61,6 +61,7 @@ OPTIONS:
     --csv                       Input file is in CSV format (host,port)
     --json                      Output in JSON format (alias for -f json)
     --show <filter>             Filter -q/tcp results: all (default), success, or fail
+    --no-color                  Disable coloured output
     --alert <channels>          Alert channels to use: email,slack,webhook,desktop
     --alert-on <trigger>        When to alert: any (default), down, up
     --alert-cooldown <seconds>  Min seconds between same-direction alerts (default: 60)
@@ -68,23 +69,60 @@ OPTIONS:
     -v, --version               Show version information
 
 SUBCOMMANDS (v{__version__}):
-    tcp <host> <port>           Check TCP connectivity (accepts ranges)
+    tcp <host> <port>           Check TCP connectivity (accepts IP/port ranges)
+      --show <filter>             Filter output: all, success, fail (default: all)
+      -j, --jobs <n>              Parallel connections (default: 10)
+      -o, --output <file>         Save results to file
+
     dns <host>                  Perform DNS lookup and show nameservers
-    http <url>                  Validate HTTP response and size
-    ssl <host> [port]           Validate SSL/TLS certificate validity
-    ping <host>                 Ping host via native ICMP
+
+    http <url>                  Validate HTTP response and response time
+      -X, --method <METHOD>       HTTP method: GET, HEAD, POST, PUT, DELETE, PATCH (default: GET)
+      -H, --header <key:value>    Add request header (repeatable)
+      --auth <user:pass>          HTTP Basic auth credentials
+
+    ssl <host> [port]           Validate SSL/TLS certificate validity (default port: 443)
+
+    ping <host>                 Ping host via ICMP
+      -c, --count <n>             Number of ping packets (default: 4)
+
     udp <host> <port>           UDP probe check
+
     mtr <host>                  MTR-style hop-by-hop latency analysis
+
     interfaces                  List local network interfaces
+      --all                       Include inactive/down interfaces
+      --public                    Also resolve and show public IP
+
     ports                       List local listening ports and services
+
     traceroute <host>           Trace route to destination host
-    scan <host>                 Perform quick concurrent port scan
+      -m, --max-hops <n>          Maximum hop count (default: 30)
+
+    scan <host>                 Concurrent port scanner
+      -p, --ports <spec>          Ports to scan: e.g. 80,443 or 80-1000 (max 1000)
+      -F, --fast                  Fast scan: top 100 most common ports
+      --top-ports <N>             Scan top N most common ports (e.g. 100, 1000)
+      -sV, --banner               Grab service banners from open ports (HTTP, SSH, FTP, SMTP, Redis, MySQL)
+      --delay <seconds>           Delay between socket dispatches for rate-limiting (default: 0.0)
+      -j, --jobs <n>              Parallel scanner workers (default: 20)
+
+    preset <name>               Run a named diagnostic preset
+      -l, --list                  List available presets (ci, aws, gcp, cloudflare, k8s, google-dns, ...)
+      --show <filter>             Filter results: all, success, fail (default: all)
+      -o, --output <file>         Save results to file
+
     whois <target>              Lookup domain/IP registrar and registration details
+
     mcp                         Start MCP server (stdio transport)
     mcp install                 Print Claude Desktop config snippet
     mcp status                  Test MCP server health
+
     config [action]             Manage configuration (init, show, path, set-password, clear-password)
-    serve <hosts_file>          Continuous check loop exposing Prometheus metrics
+
+    serve <hosts_file>          Continuous monitoring loop
+      --metrics                   Expose Prometheus metrics endpoint
+      -p, --port <n>              Metrics endpoint port (default: 9090)
 
 WATCH MODE:
     Any subcommand can be looped with:
@@ -116,14 +154,30 @@ EXAMPLES:
 
     # Subcommand style
     {cmd_name} tcp google.com 443
+    {cmd_name} tcp 10.0.0.1-20 22           # IP range
     {cmd_name} dns github.com
     {cmd_name} http https://example.com
+    {cmd_name} http https://api.example.com -X POST -H "Authorization: Bearer token"
     {cmd_name} ssl github.com
+    {cmd_name} ssl github.com 8443
     {cmd_name} ping 8.8.8.8
     {cmd_name} traceroute google.com
-    {cmd_name} scan 192.168.1.1 -p 1-1000
     {cmd_name} whois google.com
     {cmd_name} mtr 8.8.8.8
+
+    # Port scanning
+    {cmd_name} scan 192.168.1.1            # default top-1000 ports
+    {cmd_name} scan 192.168.1.1 -F         # fast: top 100 ports
+    {cmd_name} scan 192.168.1.1 --top-ports 500
+    {cmd_name} scan 192.168.1.1 -p 80,443,8080-8090
+    {cmd_name} scan 192.168.1.1 -sV        # grab banners from open ports
+    {cmd_name} scan 10.0.0.1 -F -sV --delay 0.05 --json
+
+    # Presets
+    {cmd_name} preset --list               # show all available presets
+    {cmd_name} preset ci                   # check GitHub, PyPI, npmjs
+    {cmd_name} preset aws
+    {cmd_name} preset gcp --show fail      # show only failures
 
     # Watch mode (loops until Ctrl+C)
     {cmd_name} tcp google.com 443 -w
@@ -143,8 +197,9 @@ EXAMPLES:
 
     # Local info
     {cmd_name} --my-ip
-    {cmd_name} interfaces
-    {cmd_name} ports"""
+    {cmd_name} interfaces --all
+    {cmd_name} ports
+    {cmd_name} --public"""
     print(help_text)
 
 
